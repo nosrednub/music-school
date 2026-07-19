@@ -5,12 +5,15 @@ import {
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent,
 } from "react";
 import {
   Application,
   Graphics,
 } from "pixi.js";
+import {
+  bindLowLatencyInput,
+  scheduleUiSync,
+} from "@/game-engine/inputLatency";
 import {
   LEVEL_1_CONFIG,
   applyGrade,
@@ -64,6 +67,7 @@ export const RhythmicParrotGame = ({
   defaultMuted = true,
 }: RhythmicParrotGameProps) => {
   const hostRef = useRef<HTMLDivElement>(null);
+  const tapZoneRef = useRef<HTMLButtonElement>(null);
   const appRef = useRef<Application | null>(null);
   const scheduleRef = useRef<BeatSchedule[]>([]);
   const gradedRef = useRef<Set<number>>(new Set());
@@ -201,9 +205,11 @@ export const RhythmicParrotGame = ({
       comboRef.current,
     );
     gradedRef.current.add(beatIndex);
-    setScore({ ...scoreRef.current });
-    setCombo(comboRef.current);
-    setFlash({ grade, id: beatIndex });
+    scheduleUiSync(() => {
+      setScore({ ...scoreRef.current });
+      setCombo(comboRef.current);
+      setFlash({ grade, id: beatIndex });
+    });
 
     if (navigator.vibrate && (grade === "perfect" || grade === "good")) {
       navigator.vibrate(grade === "perfect" ? 30 : 15);
@@ -214,27 +220,45 @@ export const RhythmicParrotGame = ({
     }, 350);
   }, []);
 
-  const handleTap = useCallback(() => {
-    if (phase !== "playing") {
+  const handleTapAt = useCallback(
+    (timeMs: number) => {
+      if (phaseRef.current !== "playing") {
+        return;
+      }
+
+      const nextBeat = getNextUngradedBeat(
+        scheduleRef.current,
+        gradedRef.current,
+      );
+      if (!nextBeat) {
+        return;
+      }
+
+      const { grade } = gradeTapAgainstBeat(
+        timeMs,
+        nextBeat,
+        LEVEL_1_CONFIG,
+      );
+      registerGrade(grade, nextBeat.index);
+    },
+    [registerGrade],
+  );
+
+  useEffect(() => {
+    const tapZone = tapZoneRef.current;
+    if (!tapZone) {
       return;
     }
 
-    const now = performance.now();
-    const nextBeat = getNextUngradedBeat(
-      scheduleRef.current,
-      gradedRef.current,
-    );
-    if (!nextBeat) {
-      return;
-    }
-
-    const { grade } = gradeTapAgainstBeat(
-      now,
-      nextBeat,
-      LEVEL_1_CONFIG,
-    );
-    registerGrade(grade, nextBeat.index);
-  }, [phase, registerGrade]);
+    return bindLowLatencyInput(tapZone, {
+      onTap: handleTapAt,
+      onKey: (timeMs, code) => {
+        if (code === "Space") {
+          handleTapAt(timeMs);
+        }
+      },
+    });
+  }, [handleTapAt]);
 
   const startPlaying = useCallback(() => {
     gradedRef.current = new Set();
@@ -337,13 +361,6 @@ export const RhythmicParrotGame = ({
     };
   }, [drawScene]);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.code === "Space") {
-      event.preventDefault();
-      handleTap();
-    }
-  };
-
   const handleRetry = () => {
     autoMissRef.current.forEach(clearTimeout);
     autoMissRef.current = [];
@@ -387,8 +404,6 @@ export const RhythmicParrotGame = ({
 
       <div
         className="relative overflow-hidden rounded-2xl border border-gold/20 bg-navy-light shadow-lg"
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
         role="application"
         aria-label="Rhythmic Parrot game canvas"
       >
@@ -466,10 +481,10 @@ export const RhythmicParrotGame = ({
       </div>
 
       <button
+        ref={tapZoneRef}
         type="button"
-        onClick={handleTap}
         disabled={phase !== "playing"}
-        className="min-h-14 w-full rounded-2xl border-2 border-gold/40 bg-gold/10 text-lg font-semibold text-gold-light transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
+        className="min-h-14 w-full rounded-2xl border-2 border-gold/40 bg-gold/10 text-lg font-semibold text-gold-light transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold touch-manipulation"
         aria-label="Tap rhythm"
       >
         {phase === "playing" ? "TAP!" : "Tap zone (active during round)"}

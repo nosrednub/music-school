@@ -158,6 +158,17 @@
 
 ---
 
+## ADR-013: Latency Tiers for Game Input
+
+**Status:** Accepted  
+**Date:** 2026-07-19
+
+**Context:** Real-time games (rhythm, MIDI performance, voice) need minimal input latency; turn-based games (Intervalis, Chordelius) do not.
+
+**Decision:** Three tiers in [LATENCY.md](./LATENCY.md). Tier A uses capture-phase input (`inputLatency.ts`), ref-based grading, deferred React updates.
+
+---
+
 ## ADR-008: Movable-Do Default Solfège
 
 **Status:** Superseded by ADR-012
