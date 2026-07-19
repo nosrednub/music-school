@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MidiConnectPanel } from "@/components/midi/MidiConnectPanel";
 import { ScaleStaffView } from "@/components/notation/ScaleStaffView";
 import { OnScreenPiano } from "@/components/piano/OnScreenPiano";
-import { unlockAudio } from "@/lib/audio/audioService";
+import { playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
 import { startMetronome, type MetronomeHandle } from "@/lib/audio/metronome";
 import { startOrganPad, stopOrganPad } from "@/lib/audio/organPad";
 import { inputBus } from "@/lib/midi";
@@ -134,7 +134,7 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
 
   const handleToggleMute = useCallback(async () => {
     if (muted) {
-      await unlockAudio();
+      await playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);

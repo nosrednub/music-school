@@ -1,30 +1,40 @@
 import type { Pitch } from "@/types/music";
 import { formatPitch, pitchToMidi } from "@/lib/theory/notes";
-import { SplendidGrandPiano } from "smplr";
+import { CacheStorage, SplendidGrandPiano } from "smplr";
+
+import {
+  getSharedAudioContext,
+  playGestureUnlockBlip,
+  resumeSharedAudioContext,
+} from "@/lib/audio/audioContext";
+import {
+  playFallbackClick,
+  playFallbackNote,
+} from "@/lib/audio/fallbackSynth";
 
 type AudioServiceState = {
-  context: AudioContext | null;
   piano: SplendidGrandPiano | null;
-  loading: Promise<SplendidGrandPiano> | null;
+  loading: Promise<SplendidGrandPiano | null> | null;
   unlocked: boolean;
+  pianoReady: boolean;
+  useFallback: boolean;
 };
 
+const pianoStorage = new CacheStorage("music-school-piano");
+
 const state: AudioServiceState = {
-  context: null,
   piano: null,
   loading: null,
   unlocked: false,
+  pianoReady: false,
+  useFallback: false,
 };
 
-const getContext = (): AudioContext => {
-  if (!state.context) {
-    state.context = new AudioContext({ latencyHint: "interactive" });
+const loadPiano = (): Promise<SplendidGrandPiano | null> => {
+  if (state.useFallback) {
+    return Promise.resolve(null);
   }
-  return state.context;
-};
-
-const loadPiano = (): Promise<SplendidGrandPiano> => {
-  if (state.piano) {
+  if (state.piano && state.pianoReady) {
     return Promise.resolve(state.piano);
   }
   if (state.loading) {
@@ -32,25 +42,65 @@ const loadPiano = (): Promise<SplendidGrandPiano> => {
   }
 
   state.loading = (async () => {
-    const ctx = getContext();
-    const piano = new SplendidGrandPiano(ctx);
-    state.piano = piano;
-    return piano;
+    try {
+      const ctx = getSharedAudioContext();
+      const piano = new SplendidGrandPiano(ctx, { storage: pianoStorage });
+      state.piano = piano;
+      await piano.load;
+      state.pianoReady = true;
+      return piano;
+    } catch (error) {
+      console.warn("Piano sample load failed; using fallback synth", error);
+      state.useFallback = true;
+      state.piano = null;
+      state.pianoReady = false;
+      return null;
+    } finally {
+      state.loading = null;
+    }
   })();
 
   return state.loading;
 };
 
-export const unlockAudio = async (): Promise<void> => {
-  const ctx = getContext();
-  if (ctx.state === "suspended") {
-    await ctx.resume();
+const playWithPianoOrFallback = (
+  playPiano: (piano: SplendidGrandPiano) => void,
+  fallback: () => void,
+): void => {
+  if (state.pianoReady && state.piano) {
+    playPiano(state.piano);
+    return;
   }
-  await loadPiano();
+
+  fallback();
+  void loadPiano();
+};
+
+export const unlockAudio = async (): Promise<void> => {
+  await resumeSharedAudioContext();
   state.unlocked = true;
+  void loadPiano();
 };
 
 export const isAudioUnlocked = (): boolean => state.unlocked;
+
+/** Audible confirmation on unmute — immediate blip, then piano or fallback tone. */
+export const playUnlockConfirmation = async (): Promise<void> => {
+  if (!state.unlocked) {
+    await unlockAudio();
+  } else {
+    playGestureUnlockBlip(getSharedAudioContext());
+  }
+
+  playWithPianoOrFallback(
+    (piano) => {
+      piano.start({ note: "C5", velocity: 72, duration: 0.35 });
+    },
+    () => {
+      playFallbackNote(72, 0.35, 72);
+    },
+  );
+};
 
 export const playHarmonicInterval = async (
   root: Pitch,
@@ -61,12 +111,19 @@ export const playHarmonicInterval = async (
     return;
   }
 
-  const piano = await loadPiano();
   const rootNote = formatPitch(root);
   const upperNote = formatPitch(upper);
 
-  piano.start({ note: rootNote, velocity: 72, duration: durationSec });
-  piano.start({ note: upperNote, velocity: 68, duration: durationSec });
+  playWithPianoOrFallback(
+    (piano) => {
+      piano.start({ note: rootNote, velocity: 72, duration: durationSec });
+      piano.start({ note: upperNote, velocity: 68, duration: durationSec });
+    },
+    () => {
+      playFallbackNote(root, durationSec, 72);
+      playFallbackNote(upper, durationSec, 68);
+    },
+  );
 };
 
 export const playNote = async (
@@ -77,17 +134,30 @@ export const playNote = async (
   if (!state.unlocked) {
     return;
   }
-  const piano = await loadPiano();
-  piano.start({ note: formatPitch(pitch), velocity, duration: durationSec });
+
+  const note = formatPitch(pitch);
+  playWithPianoOrFallback(
+    (piano) => {
+      piano.start({ note, velocity, duration: durationSec });
+    },
+    () => {
+      playFallbackNote(pitch, durationSec, velocity);
+    },
+  );
 };
 
-/** For Rhythmic Parrot unmute — short click sample via low piano note */
+/** Short click for Rhythmic Parrot unmute and tap feedback. */
 export const playTapClick = async (): Promise<void> => {
   if (!state.unlocked) {
     return;
   }
-  const piano = await loadPiano();
-  piano.start({ note: "C6", velocity: 40, duration: 0.06 });
+
+  playWithPianoOrFallback(
+    (piano) => {
+      piano.start({ note: "C6", velocity: 40, duration: 0.06 });
+    },
+    playFallbackClick,
+  );
 };
 
 export const midiToPitch = (midi: number): Pitch => {
@@ -105,23 +175,31 @@ export const playChordMidis = async (
   if (!state.unlocked) {
     return;
   }
-  const piano = await loadPiano();
-  for (const midi of midis) {
-    piano.start({
-      note: formatPitch(midiToPitch(midi)),
-      velocity,
-      duration: durationSec,
-    });
-  }
+
+  playWithPianoOrFallback(
+    (piano) => {
+      for (const midi of midis) {
+        piano.start({
+          note: formatPitch(midiToPitch(midi)),
+          velocity,
+          duration: durationSec,
+        });
+      }
+    },
+    () => {
+      for (const midi of midis) {
+        playFallbackNote(midi, durationSec, velocity);
+      }
+    },
+  );
 };
 
 export const disposeAudio = (): void => {
   state.piano = null;
   state.loading = null;
-  void state.context?.close();
-  state.context = null;
+  state.pianoReady = false;
+  state.useFallback = false;
   state.unlocked = false;
 };
 
-// re-export for tests
-export { pitchToMidi };
+export { getSharedAudioContext, pitchToMidi };

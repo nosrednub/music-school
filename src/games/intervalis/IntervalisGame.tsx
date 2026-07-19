@@ -9,6 +9,7 @@ import {
 import { Application, Graphics } from "pixi.js";
 import {
   playHarmonicInterval,
+  playUnlockConfirmation,
   unlockAudio,
 } from "@/lib/audio/audioService";
 import {
@@ -305,18 +306,20 @@ export const IntervalisGame = ({
   };
 
   const handleToggleMute = async () => {
-    const next = !muted;
-    setMuted(next);
-    mutedRef.current = next;
-    if (!next) {
-      await unlockAudio();
+    if (muted) {
+      await playUnlockConfirmation();
+      setMuted(false);
+      mutedRef.current = false;
       if (challengeRef.current) {
         await playHarmonicInterval(
           challengeRef.current.root,
           challengeRef.current.upper,
         );
       }
+      return;
     }
+    setMuted(true);
+    mutedRef.current = true;
   };
 
   const handleRetry = () => {

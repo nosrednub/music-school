@@ -1,18 +1,12 @@
-let padContext: AudioContext | null = null;
+import { getSharedAudioContext } from "@/lib/audio/audioContext";
+
 let padNodes: OscillatorNode[] = [];
 let padGain: GainNode | null = null;
-
-const getPadContext = (): AudioContext => {
-  if (!padContext) {
-    padContext = new AudioContext({ latencyHint: "interactive" });
-  }
-  return padContext;
-};
 
 /** Simple gospel-style organ pad on root + fifth + octave */
 export const startOrganPad = async (rootMidi: number): Promise<void> => {
   stopOrganPad();
-  const ctx = getPadContext();
+  const ctx = getSharedAudioContext();
   await ctx.resume();
 
   const frequencies = [rootMidi, rootMidi + 7, rootMidi + 12].map(
@@ -40,7 +34,7 @@ export const startOrganPad = async (rootMidi: number): Promise<void> => {
 };
 
 export const stopOrganPad = (): void => {
-  if (!padContext || !padGain) {
+  if (!padGain) {
     padNodes.forEach((node) => {
       try {
         node.stop();
@@ -52,7 +46,7 @@ export const stopOrganPad = (): void => {
     return;
   }
 
-  const ctx = padContext;
+  const ctx = getSharedAudioContext();
   const gain = padGain;
   const now = ctx.currentTime;
   gain.gain.linearRampToValueAtTime(0, now + 0.3);
@@ -71,6 +65,4 @@ export const stopOrganPad = (): void => {
 
 export const disposeOrganPad = (): void => {
   stopOrganPad();
-  void padContext?.close();
-  padContext = null;
 };

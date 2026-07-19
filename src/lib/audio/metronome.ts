@@ -1,11 +1,4 @@
-let audioContext: AudioContext | null = null;
-
-const getContext = (): AudioContext => {
-  if (!audioContext) {
-    audioContext = new AudioContext({ latencyHint: "interactive" });
-  }
-  return audioContext;
-};
+import { getSharedAudioContext } from "@/lib/audio/audioContext";
 
 const playClick = (ctx: AudioContext, accent: boolean) => {
   const osc = ctx.createOscillator();
@@ -29,11 +22,11 @@ export const startMetronome = (
   bpm: number,
   beatsPerMeasure = 4,
 ): MetronomeHandle => {
-  const ctx = getContext();
+  const ctx = getSharedAudioContext();
   void ctx.resume();
 
   let beat = 0;
-  const intervalMs = (60_000 / bpm);
+  const intervalMs = 60_000 / bpm;
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
   const tick = () => {
@@ -52,9 +45,4 @@ export const startMetronome = (
       }
     },
   };
-};
-
-export const disposeMetronomeContext = (): void => {
-  void audioContext?.close();
-  audioContext = null;
 };

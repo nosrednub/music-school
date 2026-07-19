@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Application, Graphics, Text } from "pixi.js";
 import {
   playHarmonicInterval,
+  playUnlockConfirmation,
   unlockAudio,
 } from "@/lib/audio/audioService";
 import { inputBus } from "@/lib/midi";
@@ -244,7 +245,7 @@ export const DeparturerGame = ({ defaultMuted = true }: DeparturerGameProps) => 
 
   const handleToggleMute = useCallback(async () => {
     if (muted) {
-      await unlockAudio();
+      await playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);
