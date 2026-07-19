@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Application, Graphics, Text } from "pixi.js";
-import { playChordMidis, unlockAudio } from "@/lib/audio/audioService";
+import { playChordMidis, playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
 import { cn } from "@/lib/utils";
 import {
   CHAPEL_LINE,
@@ -230,7 +230,7 @@ export const RouteVIGame = ({ defaultMuted = true }: RouteVIGameProps) => {
 
   const handleToggleMute = useCallback(async () => {
     if (muted) {
-      await unlockAudio();
+      await playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);

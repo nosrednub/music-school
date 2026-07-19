@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Application, Graphics, Text } from "pixi.js";
 import { ScaleStaffView } from "@/components/notation/ScaleStaffView";
-import { playNote, unlockAudio } from "@/lib/audio/audioService";
+import { playNote, playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
 import { inputBus } from "@/lib/midi";
 import { cn } from "@/lib/utils";
 import {
@@ -243,7 +243,7 @@ export const NotationistGame = ({ defaultMuted = true }: NotationistGameProps) =
 
   const handleToggleMute = useCallback(async () => {
     if (muted) {
-      await unlockAudio();
+      await playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);

@@ -15,8 +15,7 @@ import {
   scheduleUiSync,
 } from "@/game-engine/inputLatency";
 import {
-  playTapClick,
-  unlockAudio,
+  playUnlockConfirmation,
 } from "@/lib/audio/audioService";
 import {
   LEVEL_1_CONFIG,
@@ -381,8 +380,7 @@ export const RhythmicParrotGame = ({
 
   const handleToggleMute = useCallback(async () => {
     if (muted) {
-      await unlockAudio();
-      await playTapClick();
+      await playUnlockConfirmation();
     }
     setMuted((value) => !value);
   }, [muted]);
