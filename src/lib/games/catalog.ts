@@ -6,7 +6,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     name: "Intervalis",
     slug: "intervalis",
     category: "intervals",
-    description: "Harmonic interval detection",
+    description: "Draw a semitone bridge between resonating crystals",
     skillNodes: ["intervals-harmonic"],
     phase: 1,
   },

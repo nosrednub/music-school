@@ -11,6 +11,6 @@ test.describe("Music School", () => {
     await page.goto("/");
     await page.getByRole("link", { name: /Intervalis/ }).click();
     await expect(page.getByRole("heading", { name: "Intervalis" })).toBeVisible();
-    await expect(page.getByText("Coming soon")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
   });
 });

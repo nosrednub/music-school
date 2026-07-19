@@ -24,7 +24,7 @@ const HomePage = () => {
           Phase 1 Games
         </h2>
         <p className="mt-1 text-sm text-gold-light/60">
-          Rhythmic Parrot is playable — more games incoming
+          Rhythmic Parrot & Intervalis are playable
         </p>
         <ul className="mt-4 space-y-3">
           {phase1Games.map((game) => (
@@ -46,11 +46,12 @@ const HomePage = () => {
 
       <section className="rounded-2xl border border-gold/20 bg-gold/5 p-6">
         <h2 className="font-display text-lg font-semibold text-gold-light">
-          Try Rhythmic Parrot
+          Now playable
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-gold-light/70">
-          Tap when the fruit hits the beak. Silent by default — safe for
-          meetings until you toggle sound on.
+          <strong>Rhythmic Parrot</strong> — tap timing.{" "}
+          <strong>Intervalis</strong> — draw the semitone bridge. Both silent by
+          default.
         </p>
       </section>
     </main>

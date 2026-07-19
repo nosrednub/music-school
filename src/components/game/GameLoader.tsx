@@ -2,19 +2,26 @@
 
 import dynamic from "next/dynamic";
 
+const GameLoading = () => (
+  <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-gold/20 bg-navy-light text-gold-light/60">
+    Loading game…
+  </div>
+);
+
 const RhythmicParrotGame = dynamic(
   () =>
     import("@/games/rhythmic-parrot/RhythmicParrotGame").then(
       (mod) => mod.RhythmicParrotGame,
     ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-gold/20 bg-navy-light text-gold-light/60">
-        Loading game…
-      </div>
+  { ssr: false, loading: () => <GameLoading /> },
+);
+
+const IntervalisGame = dynamic(
+  () =>
+    import("@/games/intervalis/IntervalisGame").then(
+      (mod) => mod.IntervalisGame,
     ),
-  },
+  { ssr: false, loading: () => <GameLoading /> },
 );
 
 type GameLoaderProps = {
@@ -24,6 +31,10 @@ type GameLoaderProps = {
 export const GameLoader = ({ slug }: GameLoaderProps) => {
   if (slug === "rhythmic-parrot") {
     return <RhythmicParrotGame defaultMuted />;
+  }
+
+  if (slug === "intervalis") {
+    return <IntervalisGame defaultMuted />;
   }
 
   return (

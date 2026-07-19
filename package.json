@@ -23,6 +23,7 @@
     "pixi.js": "^8.19.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "smplr": "^0.16.4",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
