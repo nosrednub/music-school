@@ -15,9 +15,15 @@ import {
   scheduleUiSync,
 } from "@/game-engine/inputLatency";
 import {
-  playTapClick,
+  isAudioUnlocked,
   playUnlockConfirmation,
+  unlockAudioSync,
 } from "@/lib/audio/audioService";
+import {
+  buildRhythmicParrotClickSchedule,
+  scheduleBeatClicks,
+  type ScheduledRhythmHandle,
+} from "@/lib/audio/scheduleBeatClicks";
 import {
   BEAK_TARGET,
   LEVEL_1_CONFIG,
@@ -68,6 +74,9 @@ export const RhythmicParrotGame = ({
   const scoreRef = useRef<RoundScore>(createEmptyScore());
   const rafRef = useRef<number | null>(null);
   const autoMissRef = useRef<number[]>([]);
+  const rhythmRef = useRef<ScheduledRhythmHandle | null>(null);
+  const gameStartRef = useRef(0);
+  const countdownStartRef = useRef(0);
   const phaseRef = useRef<GamePhase>("ready");
   const flashGradeRef = useRef<TapGrade | null>(null);
   const mutedRef = useRef(defaultMuted);
@@ -192,7 +201,51 @@ export const RhythmicParrotGame = ({
       }
   }, []);
 
+  const cancelRhythm = useCallback(() => {
+    rhythmRef.current?.stop();
+    rhythmRef.current = null;
+  }, []);
+
+  const scheduleRoundRhythm = useCallback(
+    (countdownStartMs: number, gameStartMs: number) => {
+      if (mutedRef.current || !isAudioUnlocked()) {
+        return;
+      }
+
+      cancelRhythm();
+      const beatSchedule = buildBeatSchedule(LEVEL_1_CONFIG, gameStartMs);
+      const clicks = buildRhythmicParrotClickSchedule(
+        countdownStartMs,
+        beatSchedule.map((beat) => beat.hitAt),
+      );
+      rhythmRef.current = scheduleBeatClicks(clicks);
+    },
+    [cancelRhythm],
+  );
+
+  const scheduleRemainingRhythm = useCallback(() => {
+    if (mutedRef.current || !isAudioUnlocked() || scheduleRef.current.length === 0) {
+      return;
+    }
+
+    const now = performance.now();
+    const remaining = scheduleRef.current
+      .filter((beat) => !gradedRef.current.has(beat.index) && beat.hitAt >= now - 50)
+      .map((beat) => ({
+        atMs: beat.hitAt,
+        accent: beat.index % 4 === 0,
+      }));
+
+    if (remaining.length === 0) {
+      return;
+    }
+
+    cancelRhythm();
+    rhythmRef.current = scheduleBeatClicks(remaining);
+  }, [cancelRhythm]);
+
   const finishRound = useCallback(() => {
+    cancelRhythm();
     setPhase("results");
     setStars(calculateStars(scoreRef.current));
     if (rafRef.current !== null) {
@@ -201,7 +254,7 @@ export const RhythmicParrotGame = ({
     }
     autoMissRef.current.forEach(clearTimeout);
     autoMissRef.current = [];
-  }, []);
+  }, [cancelRhythm]);
 
   const registerGrade = useCallback((grade: TapGrade, beatIndex: number) => {
     comboRef.current =
@@ -249,9 +302,6 @@ export const RhythmicParrotGame = ({
         LEVEL_1_CONFIG,
       );
       registerGrade(grade, beat.index);
-      if (!mutedRef.current && (grade === "perfect" || grade === "good")) {
-        playTapClick(true);
-      }
     },
     [registerGrade],
   );
@@ -280,7 +330,7 @@ export const RhythmicParrotGame = ({
     setCombo(0);
     setStars(0);
 
-    const start = performance.now() + 120;
+    const start = gameStartRef.current || performance.now() + 120;
     sessionStartRef.current = start;
     scheduleRef.current = buildBeatSchedule(LEVEL_1_CONFIG, start);
     setPhase("playing");
@@ -296,14 +346,6 @@ export const RhythmicParrotGame = ({
         registerGrade("miss", beat.index);
       }, delay);
       autoMissRef.current.push(timeoutId);
-
-      const clickDelay = Math.max(0, beat.hitAt - now);
-      const clickId = window.setTimeout(() => {
-        if (!mutedRef.current) {
-          playTapClick(beat.index % 4 === 0);
-        }
-      }, clickDelay);
-      autoMissRef.current.push(clickId);
     });
 
     const endDelay = Math.max(0, start + getRoundDurationMs(LEVEL_1_CONFIG) - now);
@@ -314,9 +356,19 @@ export const RhythmicParrotGame = ({
   }, [finishRound, registerGrade]);
 
   const handleStart = useCallback(() => {
+    const countdownStartMs = performance.now();
+    const gameStartMs = countdownStartMs + 3 * 700 + 120;
+    countdownStartRef.current = countdownStartMs;
+    gameStartRef.current = gameStartMs;
+
+    if (!mutedRef.current) {
+      unlockAudioSync();
+      scheduleRoundRhythm(countdownStartMs, gameStartMs);
+    }
+
     setPhase("countdown");
     setCountdown(3);
-  }, []);
+  }, [scheduleRoundRhythm]);
 
   useEffect(() => {
     if (phase !== "countdown") {
@@ -382,6 +434,7 @@ export const RhythmicParrotGame = ({
   }, [drawScene]);
 
   const handleRetry = () => {
+    cancelRhythm();
     autoMissRef.current.forEach(clearTimeout);
     autoMissRef.current = [];
     if (rafRef.current === null && appRef.current) {
@@ -398,9 +451,19 @@ export const RhythmicParrotGame = ({
   const handleToggleMute = useCallback(() => {
     if (muted) {
       playUnlockConfirmation();
+      setMuted(false);
+      mutedRef.current = false;
+      if (phaseRef.current === "countdown") {
+        scheduleRoundRhythm(countdownStartRef.current, gameStartRef.current);
+      } else if (phaseRef.current === "playing") {
+        scheduleRemainingRhythm();
+      }
+      return;
     }
-    setMuted((value) => !value);
-  }, [muted]);
+    cancelRhythm();
+    setMuted(true);
+    mutedRef.current = true;
+  }, [cancelRhythm, muted, scheduleRemainingRhythm, scheduleRoundRhythm]);
 
   const hitRate =
     score.total > 0
@@ -445,9 +508,14 @@ export const RhythmicParrotGame = ({
               Tap when the fruit hits the beak
             </h2>
             <p className="mt-2 max-w-xs text-sm text-gold-light/70">
-              Each fruit flies from a different angle but always lands on the
-              beak on the beat — tap when it arrives.
+              Each fruit lands on the beak on the beat. Tap 🔊 Sound first —
+              you will hear a metronome during countdown and every beat.
             </p>
+            {muted && (
+              <p className="mt-3 rounded-full border border-coral/40 bg-coral/10 px-4 py-2 text-sm text-coral-light">
+                Rhythm is silent until you enable sound
+              </p>
+            )}
             <button
               type="button"
               onClick={handleStart}
