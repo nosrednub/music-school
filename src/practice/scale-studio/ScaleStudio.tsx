@@ -27,6 +27,17 @@ import {
 
 type FeedbackKind = "correct" | "wrong" | "complete" | null;
 
+const PIANO_DOCK_HEIGHT =
+  "calc(9.75rem + max(0.5rem, env(safe-area-inset-bottom)))";
+
+const preserveScrollY = (action: () => void) => {
+  const scrollY = window.scrollY;
+  action();
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+  });
+};
+
 const CATEGORIES: { id: ScaleCategory | "all"; label: string }[] = [
   { id: "all", label: "All" },
   { id: "classical", label: "Classical" },
@@ -86,19 +97,21 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
   }, [resetSession]);
 
   const handleNoteOn = useCallback((midi: number) => {
-    setSession((prev) => {
-      const result = processNoteOn(prev, midi);
+    preserveScrollY(() => {
+      setSession((prev) => {
+        const result = processNoteOn(prev, midi);
 
-      if (result.correct && result.complete) {
-        setFeedback("complete");
-      } else if (result.correct) {
-        setFeedback("correct");
-      } else {
-        setFeedback("wrong");
-      }
+        if (result.correct && result.complete) {
+          setFeedback("complete");
+        } else if (result.correct) {
+          setFeedback("correct");
+        } else {
+          setFeedback("wrong");
+        }
 
-      window.setTimeout(() => setFeedback(null), 500);
-      return result.session;
+        window.setTimeout(() => setFeedback(null), 500);
+        return result.session;
+      });
     });
   }, []);
 
@@ -132,7 +145,10 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-6 pt-4">
+    <main
+      className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pt-4"
+      style={{ paddingBottom: PIANO_DOCK_HEIGHT }}
+    >
       <header className="mb-3 flex items-center justify-between gap-3">
         <Link
           href="/"
@@ -182,7 +198,12 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
         </div>
       </section>
 
-      {/* Feedback strip */}
+      {/* Feedback strip — no aria-live here (iOS Safari scrolls to live regions) */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {feedback === "wrong" && "Wrong note — read the coral note on the staff"}
+        {feedback === "complete" &&
+          `Run complete. Streak ${session.streak}. Best ${session.bestStreak}.`}
+      </p>
       <section
         className={cn(
           "mt-3 rounded-lg border px-3 py-2 text-center text-sm transition-colors",
@@ -191,7 +212,6 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
           feedback === "correct" && "border-gold/40 bg-gold/5",
           !feedback && "border-transparent text-gold/60",
         )}
-        aria-live="polite"
       >
         {feedback === "complete" && (
           <span>
@@ -323,12 +343,19 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
         )}
       </section>
 
-      <div className="mt-auto pt-4">
-        <OnScreenPiano
-          highlightedMidi={highlightedMidi}
-          nextMidi={nextMidi}
-          muted={muted}
-        />
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/20 bg-navy/95 px-4 pt-2 backdrop-blur-sm supports-[backdrop-filter]:bg-navy/85"
+        style={{
+          paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+        }}
+      >
+        <div className="mx-auto max-w-lg">
+          <OnScreenPiano
+            highlightedMidi={highlightedMidi}
+            nextMidi={nextMidi}
+            muted={muted}
+          />
+        </div>
       </div>
     </main>
   );
