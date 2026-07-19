@@ -18,15 +18,19 @@ import {
   playUnlockConfirmation,
 } from "@/lib/audio/audioService";
 import {
+  BEAK_TARGET,
   LEVEL_1_CONFIG,
   applyGrade,
   buildBeatSchedule,
   calculateStars,
   createEmptyScore,
+  getArcPoint,
+  getBeatForTap,
   getBeatIntervalMs,
   getFruitProgress,
-  getNextUngradedBeat,
   getRoundDurationMs,
+  getSpawnOrigin,
+  getVisibleBeats,
   gradeTapAgainstBeat,
   type BeatSchedule,
   type RoundScore,
@@ -43,24 +47,8 @@ type FeedbackFlash = {
 const CANVAS_WIDTH = 360;
 const CANVAS_HEIGHT = 420;
 
-const FRUIT_START = { x: 300, y: 80 };
-const FRUIT_END = { x: 118, y: 248 };
-const BEAK_X = 118;
-const BEAK_Y = 248;
-
-const getArcPoint = (t: number): { x: number; y: number } => {
-  const midX = (FRUIT_START.x + FRUIT_END.x) / 2;
-  const midY = FRUIT_START.y - 90;
-  const x =
-    (1 - t) * (1 - t) * FRUIT_START.x +
-    2 * (1 - t) * t * midX +
-    t * t * FRUIT_END.x;
-  const y =
-    (1 - t) * (1 - t) * FRUIT_START.y +
-    2 * (1 - t) * t * midY +
-    t * t * FRUIT_END.y;
-  return { x, y };
-};
+const BEAK_X = BEAK_TARGET.x - 20;
+const BEAK_Y = BEAK_TARGET.y;
 
 type RhythmicParrotGameProps = {
   defaultMuted?: boolean;
@@ -148,41 +136,51 @@ export const RhythmicParrotGame = ({
       stage.addChild(eye);
 
       const targetRing = new Graphics();
-      targetRing.circle(BEAK_X + 20, BEAK_Y + 2, 22);
+      targetRing.circle(BEAK_TARGET.x, BEAK_TARGET.y, 22);
       targetRing.stroke({ width: 3, color: 0xf59e0b, alpha: 0.85 });
       if (activeFlash === "perfect") {
-        targetRing.circle(BEAK_X + 20, BEAK_Y + 2, 30);
+        targetRing.circle(BEAK_TARGET.x, BEAK_TARGET.y, 30);
         targetRing.stroke({ width: 4, color: 0xfef3c7, alpha: 0.9 });
       }
       stage.addChild(targetRing);
 
       if (currentPhase === "playing" && scheduleRef.current.length > 0) {
-        scheduleRef.current.forEach((beat) => {
+        getVisibleBeats(
+          nowMs,
+          scheduleRef.current,
+          gradedRef.current,
+          LEVEL_1_CONFIG.travelMs,
+        ).forEach((beat) => {
           const progress = getFruitProgress(
             nowMs,
             beat,
             LEVEL_1_CONFIG.travelMs,
           );
-          if (progress <= 0 || progress >= 1) {
+          if (progress <= 0) {
             return;
           }
 
-          const point = getArcPoint(progress);
+          const origin = getSpawnOrigin(beat);
+          const point = getArcPoint(origin, BEAK_TARGET, progress);
           const fruit = new Graphics();
           fruit.circle(point.x, point.y, 14);
           fruit.fill(0xf97316);
           fruit.circle(point.x - 4, point.y - 4, 4);
           fruit.fill({ color: 0xfef3c7, alpha: 0.35 });
-
-          const pulse = 1 + Math.sin(nowMs / 90 + beat.index) * 0.06;
-          fruit.scale.set(pulse);
           stage.addChild(fruit);
+
+          if (progress >= 0.92) {
+            const approach = new Graphics();
+            approach.circle(BEAK_TARGET.x, BEAK_TARGET.y, 18);
+            approach.stroke({ width: 2, color: 0xfef3c7, alpha: 0.5 });
+            stage.addChild(approach);
+          }
         });
       }
 
       if (activeFlash && activeFlash !== "miss" && activeFlash !== "early") {
         const burst = new Graphics();
-        burst.circle(BEAK_X + 20, BEAK_Y, 16);
+        burst.circle(BEAK_TARGET.x, BEAK_TARGET.y, 16);
         burst.fill({ color: 0xfef3c7, alpha: 0.75 });
         stage.addChild(burst);
       }
@@ -229,20 +227,22 @@ export const RhythmicParrotGame = ({
         return;
       }
 
-      const nextBeat = getNextUngradedBeat(
+      const beat = getBeatForTap(
+        timeMs,
         scheduleRef.current,
         gradedRef.current,
+        LEVEL_1_CONFIG,
       );
-      if (!nextBeat) {
+      if (!beat) {
         return;
       }
 
       const { grade } = gradeTapAgainstBeat(
         timeMs,
-        nextBeat,
+        beat,
         LEVEL_1_CONFIG,
       );
-      registerGrade(grade, nextBeat.index);
+      registerGrade(grade, beat.index);
     },
     [registerGrade],
   );
@@ -428,8 +428,8 @@ export const RhythmicParrotGame = ({
               Tap when the fruit hits the beak
             </h2>
             <p className="mt-2 max-w-xs text-sm text-gold-light/70">
-              Silent mode is on by default — safe for meetings. Enable sound
-              when you are ready.
+              Each fruit flies from a different angle but always lands on the
+              beak on the beat — tap when it arrives.
             </p>
             <button
               type="button"
