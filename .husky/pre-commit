@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+cd "$(dirname "$0")/.." || exit 1
+npm run test:unit || exit 1
+npm exec lint-staged || exit 1

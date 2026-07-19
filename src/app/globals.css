@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0f172a;
+  --color-navy-light: #1e293b;
+  --color-gold: #f59e0b;
+  --color-gold-light: #fef3c7;
+  --color-coral: #f97316;
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+@layer base {
+  * {
+    @apply border-navy-light;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    @apply touch-manipulation;
+  }
+}
