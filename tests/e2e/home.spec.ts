@@ -20,6 +20,6 @@ test.describe("Music School", () => {
     await expect(
       page.getByRole("heading", { name: "Scale Studio" }),
     ).toBeVisible();
-    await expect(page.getByText(/Play C4/)).toBeVisible();
+    await expect(page.getByText(/follow the staff/)).toBeVisible();
   });
 });
