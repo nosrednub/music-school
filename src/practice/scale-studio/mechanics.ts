@@ -1,105 +1,207 @@
-import type { Pitch, ScaleType } from "@/types/music";
+import type { Pitch } from "@/types/music";
+import {
+  type RootOption,
+  type ScaleLibraryId,
+  getScaleEntry,
+} from "@/lib/theory/scaleLibrary";
 import { buildScale, SCALE_TYPE_LABELS } from "@/lib/theory/scales";
 import { formatPitch, midiToPitch, parseNote, pitchToMidi } from "@/lib/theory/notes";
 
-export type ScaleCategory = "classical" | "jazz" | "gospel";
+export type { RootOption, ScaleLibraryId, ScaleCategory } from "@/lib/theory/scaleLibrary";
+export {
+  ROOT_OPTIONS,
+  SCALE_LIBRARY,
+  getScaleEntry,
+  getScalesByCategory,
+  getScalesByTier,
+  searchScales,
+} from "@/lib/theory/scaleLibrary";
 
-export type PracticeScaleId =
-  | ScaleType
-  | "major-pentatonic"
-  | "minor-pentatonic"
-  | "blues-six";
+export type ExerciseId =
+  | "scale-run-up"
+  | "scale-run-down"
+  | "scale-run-up-down"
+  | "thirds-ladder"
+  | "broken-thirds"
+  | "speed-run";
 
-export type PracticeScaleDef = {
-  id: PracticeScaleId;
+export type ExerciseDef = {
+  id: ExerciseId;
   label: string;
-  categories: ScaleCategory[];
-  intervals: number[];
+  description: string;
+  icon: string;
 };
 
-export const PRACTICE_SCALES: PracticeScaleDef[] = [
-  { id: "major", label: SCALE_TYPE_LABELS.major, categories: ["classical", "gospel"], intervals: [0, 2, 4, 5, 7, 9, 11] },
-  { id: "natural-minor", label: SCALE_TYPE_LABELS["natural-minor"], categories: ["classical"], intervals: [0, 2, 3, 5, 7, 8, 10] },
-  { id: "harmonic-minor", label: SCALE_TYPE_LABELS["harmonic-minor"], categories: ["classical", "jazz"], intervals: [0, 2, 3, 5, 7, 8, 11] },
-  { id: "melodic-minor", label: SCALE_TYPE_LABELS["melodic-minor"], categories: ["jazz"], intervals: [0, 2, 3, 5, 7, 9, 11] },
-  { id: "dorian", label: SCALE_TYPE_LABELS.dorian, categories: ["jazz", "gospel"], intervals: [0, 2, 3, 5, 7, 9, 10] },
-  { id: "mixolydian", label: SCALE_TYPE_LABELS.mixolydian, categories: ["gospel", "jazz"], intervals: [0, 2, 4, 5, 7, 9, 10] },
-  { id: "lydian", label: SCALE_TYPE_LABELS.lydian, categories: ["jazz"], intervals: [0, 2, 4, 6, 7, 9, 11] },
-  { id: "major-pentatonic", label: "Major Pentatonic", categories: ["gospel"], intervals: [0, 2, 4, 7, 9] },
-  { id: "minor-pentatonic", label: "Minor Pentatonic", categories: ["gospel", "jazz"], intervals: [0, 3, 5, 7, 10] },
-  { id: "blues-six", label: "Blues (6-note)", categories: ["gospel", "jazz"], intervals: [0, 3, 5, 6, 7, 10] },
+export const EXERCISES: ExerciseDef[] = [
+  {
+    id: "scale-run-up",
+    label: "Scale Run ↑",
+    description: "One octave ascending — read the full line on staff",
+    icon: "↑",
+  },
+  {
+    id: "scale-run-down",
+    label: "Scale Run ↓",
+    description: "One octave descending from the top",
+    icon: "↓",
+  },
+  {
+    id: "scale-run-up-down",
+    label: "Up & Down",
+    description: "Ascend then descend — classic exam pattern",
+    icon: "↕",
+  },
+  {
+    id: "thirds-ladder",
+    label: "Thirds Ladder",
+    description: "Diatonic thirds — stack intervals on the staff",
+    icon: "3",
+  },
+  {
+    id: "broken-thirds",
+    label: "Broken Thirds",
+    description: "Skip-step pattern: 1–3–2–4–3–5…",
+    icon: "⌁",
+  },
+  {
+    id: "speed-run",
+    label: "Speed Run",
+    description: "Same as scale run — chase your best streak combo",
+    icon: "⚡",
+  },
 ];
 
-export const ROOT_OPTIONS = ["C", "D", "E", "F", "G", "A", "Bb"] as const;
-export type RootOption = (typeof ROOT_OPTIONS)[number];
+const ROOT_TO_PITCH: Record<RootOption, string> = {
+  C: "C4",
+  Db: "C#4",
+  D: "D4",
+  Eb: "D#4",
+  E: "E4",
+  F: "F4",
+  Gb: "F#4",
+  G: "G4",
+  Ab: "G#4",
+  A: "A4",
+  Bb: "A#4",
+  B: "B4",
+};
 
 export const rootToPitch = (root: RootOption): Pitch => {
-  const map: Record<RootOption, string> = {
-    C: "C4",
-    D: "D4",
-    E: "E4",
-    F: "F4",
-    G: "G4",
-    A: "A4",
-    Bb: "A#3",
-  };
-  return parseNote(map[root]);
+  return parseNote(ROOT_TO_PITCH[root]);
 };
 
-export const getScaleDef = (id: PracticeScaleId): PracticeScaleDef | undefined => {
-  return PRACTICE_SCALES.find((s) => s.id === id);
-};
-
-export const getScaleMidiSequence = (
-  root: RootOption,
-  scaleId: PracticeScaleId,
-): number[] => {
-  const def = getScaleDef(scaleId);
-  if (!def) {
-    return [];
-  }
-
-  if (isTheoryScaleType(scaleId)) {
-    const pitches = buildScale(rootToPitch(root), scaleId);
-    return pitches.map(pitchToMidi);
-  }
-
-  const rootMidi = pitchToMidi(rootToPitch(root));
-  return def.intervals.map((interval) => rootMidi + interval);
-};
-
-const isTheoryScaleType = (id: PracticeScaleId): id is ScaleType => {
+const isTheoryScaleType = (id: ScaleLibraryId): id is keyof typeof SCALE_TYPE_LABELS => {
   return id in SCALE_TYPE_LABELS;
 };
 
-export const getScalesByCategory = (
-  category: ScaleCategory | "all",
-): PracticeScaleDef[] => {
-  if (category === "all") {
-    return PRACTICE_SCALES;
+/** One-octave scale pitches from root (may extend into next octave for display) */
+export const getScalePitches = (
+  root: RootOption,
+  scaleId: ScaleLibraryId,
+  octaves = 1,
+): Pitch[] => {
+  const entry = getScaleEntry(scaleId);
+  if (!entry) {
+    return [];
   }
-  return PRACTICE_SCALES.filter((s) => s.categories.includes(category));
+
+  const rootPitch = rootToPitch(root);
+  const rootMidi = pitchToMidi(rootPitch);
+
+  if (isTheoryScaleType(scaleId)) {
+    const base = buildScale(rootPitch, scaleId);
+    if (octaves <= 1) {
+      return base;
+    }
+    const pitches: Pitch[] = [...base];
+    for (let o = 1; o < octaves; o++) {
+      for (const p of base) {
+        pitches.push(midiToPitch(pitchToMidi(p) + o * 12));
+      }
+    }
+    return pitches;
+  }
+
+  const pitches: Pitch[] = [];
+  for (let o = 0; o < octaves; o++) {
+    for (const interval of entry.intervals) {
+      pitches.push(midiToPitch(rootMidi + interval + o * 12));
+    }
+  }
+  return pitches;
+};
+
+export const pitchesToMidi = (pitches: Pitch[]): number[] => {
+  return pitches.map(pitchToMidi);
+};
+
+export const buildExerciseSequence = (
+  root: RootOption,
+  scaleId: ScaleLibraryId,
+  exerciseId: ExerciseId,
+): number[] => {
+  const scale = getScalePitches(root, scaleId, 1);
+  const midi = pitchesToMidi(scale);
+
+  switch (exerciseId) {
+    case "scale-run-up":
+    case "speed-run":
+      return midi;
+    case "scale-run-down": {
+      const desc = [...midi].reverse();
+      return desc;
+    }
+    case "scale-run-up-down":
+      return [...midi, ...[...midi].slice(0, -1).reverse()];
+    case "thirds-ladder": {
+      const thirds: number[] = [];
+      for (let i = 0; i < midi.length - 2; i++) {
+        thirds.push(midi[i]!, midi[i + 2]!);
+      }
+      return thirds.flat();
+    }
+    case "broken-thirds": {
+      const broken: number[] = [];
+      for (let i = 0; i < midi.length - 1; i++) {
+        broken.push(midi[i]!);
+        if (i + 2 < midi.length) {
+          broken.push(midi[i + 2]!);
+        }
+      }
+      broken.push(midi[midi.length - 1]!);
+      return broken;
+    }
+    default:
+      return midi;
+  }
 };
 
 export type PracticeSession = {
   root: RootOption;
-  scaleId: PracticeScaleId;
+  scaleId: ScaleLibraryId;
+  exerciseId: ExerciseId;
   targetMidi: number[];
   nextIndex: number;
   streak: number;
   mistakes: number;
+  bestStreak: number;
+  startedAt: number;
 };
 
 export const createSession = (
   root: RootOption,
-  scaleId: PracticeScaleId,
+  scaleId: ScaleLibraryId,
+  exerciseId: ExerciseId,
 ): PracticeSession => ({
   root,
   scaleId,
-  targetMidi: getScaleMidiSequence(root, scaleId),
+  exerciseId,
+  targetMidi: buildExerciseSequence(root, scaleId, exerciseId),
   nextIndex: 0,
   streak: 0,
   mistakes: 0,
+  bestStreak: 0,
+  startedAt: Date.now(),
 });
 
 export type StepResult = {
@@ -132,13 +234,14 @@ export const processNoteOn = (
       complete: false,
       expectedMidi: expected,
       playedMidi: midiNote,
-      session: { ...session, mistakes: session.mistakes + 1 },
+      session: { ...session, mistakes: session.mistakes + 1, streak: 0 },
     };
   }
 
   const nextIndex = session.nextIndex + 1;
   const complete = nextIndex >= session.targetMidi.length;
   const streak = complete ? session.streak + 1 : session.streak;
+  const bestStreak = Math.max(session.bestStreak, complete ? streak : session.bestStreak);
 
   return {
     correct: true,
@@ -149,6 +252,7 @@ export const processNoteOn = (
       ...session,
       nextIndex: complete ? 0 : nextIndex,
       streak: complete ? streak : session.streak,
+      bestStreak: complete ? bestStreak : session.bestStreak,
     },
   };
 };
@@ -157,13 +261,25 @@ export const midiToLabel = (midi: number): string => {
   return formatPitch(midiToPitch(midi));
 };
 
-export const getProgressLabel = (session: PracticeSession): string => {
-  if (session.targetMidi.length === 0) {
-    return "";
-  }
-  const current = session.targetMidi[session.nextIndex];
-  if (current === undefined) {
-    return "Scale complete — play again!";
-  }
-  return `Play ${midiToLabel(current)} (${session.nextIndex + 1}/${session.targetMidi.length})`;
+export const getExerciseProgress = (session: PracticeSession): {
+  current: number;
+  total: number;
+  percent: number;
+} => {
+  const total = session.targetMidi.length;
+  const current = Math.min(session.nextIndex, total);
+  return {
+    current,
+    total,
+    percent: total === 0 ? 0 : Math.round((current / total) * 100),
+  };
+};
+
+export const getStaffPitchesForExercise = (
+  root: RootOption,
+  scaleId: ScaleLibraryId,
+  exerciseId: ExerciseId,
+): Pitch[] => {
+  const midi = buildExerciseSequence(root, scaleId, exerciseId);
+  return midi.map(midiToPitch);
 };

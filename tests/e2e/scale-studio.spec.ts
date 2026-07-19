@@ -11,37 +11,35 @@ const SCREENSHOT_DIR = path.join(
 test.describe("Scale Studio", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("practice flow with screenshots", async ({ page }) => {
+  test("sheet music drill flow with screenshots", async ({ page }) => {
     await page.goto("/practice/scale-studio");
 
     await expect(
       page.getByRole("heading", { name: "Scale Studio" }),
     ).toBeVisible();
 
+    await expect(page.getByText(/follow the staff/)).toBeVisible();
+    await expect(page.getByText(/scales · sheet music/)).toBeVisible();
+
     await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, "01-ready.png"),
+      path: path.join(SCREENSHOT_DIR, "01-staff-view.png"),
       fullPage: true,
     });
 
-    await expect(page.getByText(/Play C4/)).toBeVisible();
-
-    const cKey = page.getByRole("button", { name: "C 4" });
-    await cKey.click();
-
-    await expect(page.getByText(/Play D4/)).toBeVisible({ timeout: 3000 });
+    await page.getByRole("button", { name: /Scale library/ }).click();
+    await page.getByPlaceholder("Search scales…").fill("gospel");
+    await page.getByRole("button", { name: /Major Pentatonic/ }).click();
 
     await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, "02-after-note.png"),
+      path: path.join(SCREENSHOT_DIR, "02-library-pentatonic.png"),
       fullPage: true,
     });
 
-    await page.getByRole("button", { name: "Gospel" }).click();
-    await page.selectOption('select[aria-label="Scale type"]', "major-pentatonic");
-
-    await expect(page.getByText(/Major Pentatonic in C/)).toBeVisible();
+    await page.getByRole("button", { name: /Thirds Ladder/ }).click();
+    await expect(page.getByText(/Diatonic thirds/)).toBeVisible();
 
     await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, "03-gospel-pentatonic.png"),
+      path: path.join(SCREENSHOT_DIR, "03-thirds-exercise.png"),
       fullPage: true,
     });
   });

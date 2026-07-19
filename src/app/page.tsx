@@ -74,8 +74,8 @@ const HomePage = () => {
         <p className="mt-2 text-sm leading-relaxed text-gold-light/70">
           <strong>Rhythmic Parrot</strong> — tap timing.{" "}
           <strong>Intervalis</strong> — draw the semitone bridge.{" "}
-          <strong>Scale Studio</strong> — play scales on piano or MIDI. All silent
-          by default.
+          <strong>Scale Studio</strong> — sheet music scale drills with a full
+          library. All silent by default.
         </p>
       </section>
     </main>

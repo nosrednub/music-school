@@ -1,52 +1,61 @@
 import { describe, expect, it } from "vitest";
+import { SCALE_LIBRARY } from "@/lib/theory/scaleLibrary";
 import {
+  buildExerciseSequence,
   createSession,
-  getScaleMidiSequence,
-  getScalesByCategory,
+  getExerciseProgress,
+  getScalePitches,
   processNoteOn,
+  searchScales,
 } from "@/practice/scale-studio/mechanics";
 
-describe("scale studio mechanics", () => {
-  it("builds C major ascending midi sequence", () => {
-    const seq = getScaleMidiSequence("C", "major");
+describe("scale library", () => {
+  it("has at least 24 scales", () => {
+    expect(SCALE_LIBRARY.length).toBeGreaterThanOrEqual(24);
+  });
+
+  it("searches by label", () => {
+    const hits = searchScales("pentatonic");
+    expect(hits.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("scale studio exercises", () => {
+  it("builds C major ascending midi", () => {
+    const seq = buildExerciseSequence("C", "major", "scale-run-up");
     expect(seq).toEqual([60, 62, 64, 65, 67, 69, 71]);
   });
 
-  it("filters gospel scales", () => {
-    const gospel = getScalesByCategory("gospel");
-    expect(gospel.some((s) => s.id === "major-pentatonic")).toBe(true);
-    expect(gospel.some((s) => s.id === "natural-minor")).toBe(false);
+  it("builds up-down pattern", () => {
+    const seq = buildExerciseSequence("C", "major-pentatonic", "scale-run-up-down");
+    expect(seq[0]).toBe(60);
+    expect(seq[seq.length - 1]).toBe(60);
+    expect(seq.length).toBeGreaterThan(5);
   });
 
-  it("advances session on correct notes", () => {
-    const session = createSession("C", "major");
-    const first = session.targetMidi[0];
-    expect(first).toBeDefined();
-
-    const result = processNoteOn(session, first!);
-    expect(result.correct).toBe(true);
-    expect(result.complete).toBe(false);
-    expect(result.session.nextIndex).toBe(1);
+  it("builds thirds ladder", () => {
+    const seq = buildExerciseSequence("C", "major", "thirds-ladder");
+    expect(seq.length).toBeGreaterThan(7);
   });
 
-  it("counts mistakes on wrong notes", () => {
-    const session = createSession("C", "major");
-    const wrong = processNoteOn(session, 61);
-    expect(wrong.correct).toBe(false);
-    expect(wrong.session.mistakes).toBe(1);
-    expect(wrong.session.nextIndex).toBe(0);
+  it("provides staff pitches for notation", () => {
+    const pitches = getScalePitches("G", "mixolydian");
+    expect(pitches.length).toBe(7);
   });
 
-  it("completes scale and increments streak", () => {
-    let session = createSession("C", "major-pentatonic");
-    for (const midi of session.targetMidi) {
-      const step = processNoteOn(session, midi);
-      session = step.session;
-      if (step.complete) {
-        expect(step.correct).toBe(true);
-        expect(session.streak).toBe(1);
-        expect(session.nextIndex).toBe(0);
-      }
-    }
+  it("tracks progress percent", () => {
+    const session = createSession("C", "major", "scale-run-up");
+    const step = processNoteOn(session, 60);
+    const progress = getExerciseProgress(step.session);
+    expect(progress.current).toBe(1);
+    expect(progress.percent).toBeGreaterThan(0);
+  });
+
+  it("resets streak on mistake", () => {
+    let session = createSession("C", "major", "scale-run-up");
+    session = processNoteOn(session, 60).session;
+    session = processNoteOn(session, 61).session;
+    expect(session.streak).toBe(0);
+    expect(session.mistakes).toBe(1);
   });
 });
