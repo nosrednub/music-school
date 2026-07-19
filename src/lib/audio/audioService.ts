@@ -97,6 +97,24 @@ export const midiToPitch = (midi: number): Pitch => {
   return { note: noteNames[pitchClass], octave };
 };
 
+export const playChordMidis = async (
+  midis: number[],
+  durationSec = 0.9,
+  velocity = 68,
+): Promise<void> => {
+  if (!state.unlocked) {
+    return;
+  }
+  const piano = await loadPiano();
+  for (const midi of midis) {
+    piano.start({
+      note: formatPitch(midiToPitch(midi)),
+      velocity,
+      duration: durationSec,
+    });
+  }
+};
+
 export const disposeAudio = (): void => {
   state.piano = null;
   state.loading = null;

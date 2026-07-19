@@ -24,6 +24,12 @@ const IntervalisGame = dynamic(
   { ssr: false, loading: () => <GameLoading /> },
 );
 
+const RouteVIGame = dynamic(
+  () =>
+    import("@/games/route-vi/RouteVIGame").then((mod) => mod.RouteVIGame),
+  { ssr: false, loading: () => <GameLoading /> },
+);
+
 type GameLoaderProps = {
   slug: string;
 };
@@ -35,6 +41,10 @@ export const GameLoader = ({ slug }: GameLoaderProps) => {
 
   if (slug === "intervalis") {
     return <IntervalisGame defaultMuted />;
+  }
+
+  if (slug === "route-vi") {
+    return <RouteVIGame defaultMuted />;
   }
 
   return (

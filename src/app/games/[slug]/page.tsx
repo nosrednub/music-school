@@ -19,7 +19,12 @@ const GamePage = async ({ params }: GamePageProps) => {
     notFound();
   }
 
-  const isPlayable = slug === "rhythmic-parrot";
+  const playableSlugs = new Set([
+    "rhythmic-parrot",
+    "intervalis",
+    "route-vi",
+  ]);
+  const isPlayable = playableSlugs.has(slug);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-8 pt-6">
@@ -41,7 +46,7 @@ const GamePage = async ({ params }: GamePageProps) => {
         <p className="mt-2 text-gold-light/70">{game.description}</p>
         {isPlayable && (
           <p className="mt-2 text-xs text-gold/60">
-            Silent by default · tap the fruit timing zone or press space
+            Silent by default · unmute for chord and sample audio
           </p>
         )}
       </header>
