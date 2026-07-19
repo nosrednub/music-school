@@ -11,6 +11,14 @@
 }
 
 @layer base {
+  html {
+    overflow-anchor: none;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
   * {
     @apply border-navy-light;
   }

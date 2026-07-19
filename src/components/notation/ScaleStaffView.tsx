@@ -102,7 +102,7 @@ export const ScaleStaffView = ({
       )}
       <div
         ref={containerRef}
-        className="mx-auto overflow-x-auto rounded-lg border border-gold/20 bg-navy/80 p-2"
+        className="mx-auto min-h-[160px] overflow-x-auto rounded-lg border border-gold/20 bg-navy/80 p-2"
         role="img"
         aria-label={`Sheet music: ${pitches.map(formatPitch).join(", ")}`}
       />
