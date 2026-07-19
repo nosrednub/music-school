@@ -397,6 +397,10 @@ export const RhythmicParrotGame = ({
   }, [phase, countdown, startPlaying]);
 
   useEffect(() => {
+    if (!soundReady) {
+      return;
+    }
+
     const host = hostRef.current;
     if (!host || appRef.current) {
       return;
@@ -436,11 +440,12 @@ export const RhythmicParrotGame = ({
       disposed = true;
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
       appRef.current?.destroy(true);
       appRef.current = null;
     };
-  }, [drawScene]);
+  }, [drawScene, soundReady]);
 
   const handleRetry = () => {
     cancelRhythm();
@@ -510,14 +515,18 @@ export const RhythmicParrotGame = ({
       </div>
 
       <div
-        className="relative overflow-hidden rounded-2xl border border-gold/20 bg-navy-light shadow-lg"
+        className="relative min-h-[420px] overflow-hidden rounded-2xl border border-gold/20 bg-navy-light shadow-lg"
         role="application"
         aria-label="Rhythmic Parrot game canvas"
       >
-        <div ref={hostRef} className="mx-auto w-full max-w-[360px]" />
+        <div
+          ref={hostRef}
+          className="mx-auto w-full max-w-[360px]"
+          style={{ minHeight: CANVAS_HEIGHT }}
+        />
 
         {phase === "ready" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-navy/75 p-6 text-center">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-navy/75 p-6 text-center">
             <p className="text-xs uppercase tracking-widest text-gold/70">
               Level 1 · {LEVEL_1_CONFIG.bpm} BPM · {APP_BUILD_LABEL}
             </p>

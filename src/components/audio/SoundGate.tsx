@@ -3,7 +3,7 @@
 import { unlockAudioSync } from "@/lib/audio/audioService";
 
 /** Visible in UI so users can confirm they have the latest deploy. */
-export const APP_BUILD_LABEL = "2026-07-19 · sound-gate";
+export const APP_BUILD_LABEL = "2026-07-19 · pixi-fix";
 
 type SoundGateProps = {
   onEnabled: () => void;

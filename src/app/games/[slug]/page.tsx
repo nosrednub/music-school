@@ -46,9 +46,14 @@ const GamePage = async ({ params }: GamePageProps) => {
           {game.name}
         </h1>
         <p className="mt-2 text-gold-light/70">{game.description}</p>
-        {isPlayable && (
+        {isPlayable && slug !== "rhythmic-parrot" && (
           <p className="mt-2 text-xs text-gold/60">
             Silent by default · unmute for chord and sample audio
+          </p>
+        )}
+        {slug === "rhythmic-parrot" && (
+          <p className="mt-2 text-xs text-gold/60">
+            Tap to enable sound, then start the round to hear the beat
           </p>
         )}
       </header>
