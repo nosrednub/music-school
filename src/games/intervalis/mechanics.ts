@@ -87,15 +87,15 @@ export const evaluateBridge = (
 };
 
 export const getTeachingTip = (challenge: IntervalChallenge): string => {
-  const normalized = ((challenge.targetSemitones % 12) + 12) % 12;
-  const octaveTip =
-    challenge.targetSemitones >= 12
-      ? ` Span: ${challenge.targetSemitones} semitones (compound).`
-      : "";
-  return (
-    (TEACHING_TIPS[normalized] ?? `${challenge.targetLabel} — listen for the color.`) +
-    octaveTip
-  );
+  const st = challenge.targetSemitones;
+  const tipKey = st === 12 ? 12 : ((st % 12) + 12) % 12;
+  const base =
+    TEACHING_TIPS[tipKey] ??
+    `${challenge.targetLabel} — listen for the color.`;
+  if (st > 12) {
+    return `${base} Span: ${st} semitones (compound).`;
+  }
+  return base;
 };
 
 export const formatPitchLabel = (pitch: Pitch): string => {
