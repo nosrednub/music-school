@@ -14,6 +14,7 @@ import {
   bindLowLatencyInput,
   scheduleUiSync,
 } from "@/game-engine/inputLatency";
+import { APP_BUILD_LABEL, SoundGate } from "@/components/audio/SoundGate";
 import {
   isAudioUnlocked,
   playUnlockConfirmation,
@@ -88,6 +89,7 @@ export const RhythmicParrotGame = ({
   const [combo, setCombo] = useState(0);
   const [flash, setFlash] = useState<FeedbackFlash | null>(null);
   const [stars, setStars] = useState<0 | 1 | 2 | 3>(0);
+  const [soundReady, setSoundReady] = useState(false);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -355,6 +357,13 @@ export const RhythmicParrotGame = ({
     autoMissRef.current.push(endTimeout);
   }, [finishRound, registerGrade]);
 
+  const handleEnableSound = useCallback(() => {
+    unlockAudioSync();
+    setSoundReady(true);
+    setMuted(false);
+    mutedRef.current = false;
+  }, []);
+
   const handleStart = useCallback(() => {
     const countdownStartMs = performance.now();
     const gameStartMs = countdownStartMs + 3 * 700 + 120;
@@ -470,6 +479,14 @@ export const RhythmicParrotGame = ({
       ? Math.round(((score.perfect + score.good) / score.total) * 100)
       : 0;
 
+  if (!soundReady) {
+    return (
+      <div className="relative flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-gold/20 bg-navy-light shadow-lg">
+        <SoundGate onEnabled={handleEnableSound} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
@@ -502,20 +519,15 @@ export const RhythmicParrotGame = ({
         {phase === "ready" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-navy/75 p-6 text-center">
             <p className="text-xs uppercase tracking-widest text-gold/70">
-              Level 1 · {LEVEL_1_CONFIG.bpm} BPM
+              Level 1 · {LEVEL_1_CONFIG.bpm} BPM · {APP_BUILD_LABEL}
             </p>
             <h2 className="mt-2 font-display text-2xl text-gold-light">
               Tap when the fruit hits the beak
             </h2>
             <p className="mt-2 max-w-xs text-sm text-gold-light/70">
-              Each fruit lands on the beak on the beat. Tap 🔊 Sound first —
-              you will hear a metronome during countdown and every beat.
+              You will hear metronome clicks on the countdown and every beat.
+              Tap in sync when the fruit hits the beak.
             </p>
-            {muted && (
-              <p className="mt-3 rounded-full border border-coral/40 bg-coral/10 px-4 py-2 text-sm text-coral-light">
-                Rhythm is silent until you enable sound
-              </p>
-            )}
             <button
               type="button"
               onClick={handleStart}
