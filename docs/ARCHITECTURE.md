@@ -4,237 +4,188 @@
 
 ```
 music-school/
-├── .cursor/skills/          # Agent skills for consistent development
-├── .husky/                  # Git hooks
-├── docs/                    # Planning & ADRs
+├── packages/
+│   └── midi-link/              # Tauri menubar app — CoreMIDI → WebSocket (Mac Safari)
+├── .cursor/skills/
+├── docs/
 ├── public/
-│   ├── samples/             # Self-hosted SFZ/WAV subsets (lazy-loaded)
-│   ├── icons/               # PWA icons
-│   └── fonts/               # Bravura (notation), UI fonts
+│   ├── samples/                # Self-hosted SFZ subsets
+│   ├── atlases/                # Pixi spritesheets
+│   └── fonts/                  # Bravura, UI fonts
 ├── src/
-│   ├── app/                 # Next.js App Router pages
-│   │   ├── (main)/          # Home, games, practice, profile
-│   │   ├── games/[slug]/    # Dynamic game routes
-│   │   └── layout.tsx
+│   ├── app/                    # Next.js hub (world map, routes)
+│   │   ├── page.tsx            # World map — NOT a quiz list
+│   │   └── play/[slug]/        # Game launcher (dynamic import)
 │   ├── components/
-│   │   ├── ui/              # shadcn primitives
-│   │   ├── game/            # Shared game shell (lives, timer, feedback)
-│   │   ├── audio/           # Piano keyboard, MIDI status
-│   │   └── notation/        # VexFlow wrappers
-│   ├── games/               # One folder per game
+│   │   ├── hub/                # Biome map, MIDI connect sheet
+│   │   ├── coach/              # React overlay — 5s teaching moments
+│   │   └── ui/                 # shadcn
+│   ├── game-engine/            # Shared game infrastructure
+│   │   ├── GameRuntime.ts      # Session, scoring, adaptive
+│   │   ├── InputBus.ts         # Touch, MIDI, voice → events
+│   │   ├── SceneLoader.tsx     # dynamic(() => import game scene)
+│   │   └── pixi/               # extend(), shared textures, juice
+│   ├── games/                  # One Pixi scene per game
+│   │   ├── rhythmic-parrot/
+│   │   │   ├── scene.tsx       # @pixi/react scene
+│   │   │   ├── mechanics.ts    # Pure logic (testable)
+│   │   │   └── assets.json
 │   │   ├── intervalis/
-│   │   ├── chordelius/
 │   │   └── ...
 │   ├── lib/
-│   │   ├── theory/          # Pure music theory (no React)
-│   │   ├── audio/           # AudioService, sample loading
-│   │   ├── midi/            # MidiService
-│   │   ├── pitch/           # PitchService (microphone)
-│   │   ├── rhythm/          # RhythmEngine
-│   │   ├── notation/        # Score generation helpers
-│   │   └── adaptive/        # MasteryTracker, SkillTree
-│   ├── hooks/               # React hooks
-│   ├── stores/              # Zustand stores
-│   └── types/               # Shared TypeScript types
+│   │   ├── theory/             # Pure TS — no Pixi, no React
+│   │   ├── audio/              # AudioService, smplr, Tone Transport
+│   │   ├── midi/               # MidiTransport implementations + MidiRouter
+│   │   ├── pitch/              # pitchy voice pipeline
+│   │   ├── groove/             # Gospel/jazz backing patterns
+│   │   ├── notation/           # VexFlow → canvas → Pixi texture
+│   │   └── adaptive/           # MasteryTracker
+│   └── stores/
 ├── tests/
-│   ├── unit/                # Vitest
-│   └── e2e/                 # Playwright
-└── scripts/                 # Sample conversion, codegen
+│   ├── unit/
+│   └── e2e/
+└── scripts/
 ```
 
 ---
 
-## Core Modules
+## Layer Separation
 
-### 1. Theory Library (`src/lib/theory/`)
+| Layer | Technology | Responsibility |
+|-------|------------|----------------|
+| **Hub** | React + Tailwind | Navigation, settings, MIDI connect UX |
+| **Game Scene** | PixiJS + @pixi/react | Visual mechanics, 60fps gameplay |
+| **Game Logic** | Pure TypeScript | `mechanics.ts` per game — fully unit tested |
+| **Services** | Browser APIs | Audio, MIDI, mic — injected into GameRuntime |
+| **Theory** | Pure TS | Content generation — never imported by Pixi directly in hot paths |
 
-Pure TypeScript. Zero browser APIs. Fully unit-tested.
+**Rule:** React re-renders on state changes (lives, pause). Pixi `useTick` drives frame animation — never `useState` per frame.
+
+---
+
+## GameRuntime
+
+Central orchestrator — games register, don't inherit from a quiz base class.
 
 ```typescript
-// Example types
-type NoteName = 'C' | 'C#' | 'D' | ... ;
-type Pitch = { note: NoteName; octave: number };
-type Interval = { semitones: number; quality: IntervalQuality; number: number };
-type Chord = { root: Pitch; quality: ChordQuality; tones: Pitch[] };
-type Scale = { root: Pitch; type: ScaleType; degrees: Pitch[] };
-```
-
-**Modules:**
-- `notes.ts` — pitch class math, enharmonics
-- `intervals.ts` — interval between two pitches, naming
-- `scales.ts` — all scale types (see CURRICULUM.md)
-- `chords.ts` — triads through extended jazz chords
-- `progressions.ts` — Roman numeral analysis, jazz substitutions
-- `random.ts` — seeded RNG for reproducible game questions
-
-### 2. Audio Service (`src/lib/audio/`)
-
-Singleton managing Web Audio lifecycle.
-
-**Responsibilities:**
-- Lazy AudioContext creation + resume on user gesture
-- Instrument registry (piano, violin, guitar, …)
-- Polyphonic note scheduling with velocity layers
-- Master gain + limiter (prevent clipping on mobile speakers)
-
-**Interface:**
-```typescript
-interface AudioService {
-  unlock(): Promise<void>;
-  playNote(instrument: InstrumentId, pitch: Pitch, durationMs: number, velocity?: number): void;
-  playChord(instrument: InstrumentId, pitches: Pitch[], durationMs: number): void;
-  playSequence(notes: ScheduledNote[]): Promise<void>;
-  setMasterVolume(v: number): void;
+interface GameRuntime {
+  readonly slug: string;
+  readonly level: number;
+  start(): void;
+  pause(): void;
+  handleInput(event: InputEvent): void;
+  onRoundComplete(result: RoundResult): void;
+  subscribe(cb: (state: RuntimeState) => void): Unsubscribe;
 }
 ```
 
-### 3. MIDI Service (`src/lib/midi/`)
+`RoundResult` feeds `MasteryTracker`. Coach overlay triggered on `needsCoach: true`.
+
+---
+
+## InputBus
+
+Normalizes all player input:
 
 ```typescript
-interface MidiService {
-  isSupported(): boolean;
-  connect(): Promise<MidiInput[]>;
-  onNoteOn(callback: (note: number, velocity: number) => void): void;
-  onNoteOff(callback: (note: number) => void): void;
-  disconnect(): void;
-}
+type InputEvent =
+  | { type: "tap"; x: number; y: number; timestamp: number }
+  | { type: "drag"; phase: "start" | "move" | "end"; ... }
+  | { type: "midi"; note: number; velocity: number; on: boolean }
+  | { type: "voice"; pitchHz: number; clarity: number };
 ```
 
-Feature-detects `navigator.requestMIDIAccess`. Shows setup guide for Android USB/BLE.
+MidiRouter → InputBus. Virtual keyboard → InputBus. Touch → InputBus.
 
-### 4. Pitch Service (`src/lib/pitch/`)
+---
 
-For voice games (Melody Jay, Solfègiator, Interval Barks).
+## MidiRouter (`src/lib/midi/`)
 
-- Uses `pitchy` PitchDetector on AnalyserNode stream
-- Converts Hz → Pitch with cents tolerance scoring
-- Handles clarity threshold (ignore noise)
+See [MIDI.md](./MIDI.md). Implementations:
 
-### 5. Rhythm Engine (`src/lib/rhythm/`)
-
-- Metronome with lookahead scheduler (Chris Wilson pattern)
-- Tap recording with timing deviation scoring (±ms tolerance scales with level)
-- Pattern representation: array of `{ offset: number; duration: number }`
-
-### 6. Adaptive Engine (`src/lib/adaptive/`)
+- `WebMidiTransport`
+- `BleMidiTransport`
+- `BeacioBleTransport`
+- `LinkTransport` (WebSocket to `packages/midi-link`)
+- `VirtualKeyboardTransport`
 
 ```typescript
-interface SkillNode {
-  id: string;
-  name: string;
-  mastery: number;        // 0-100
-  level: number;          // 1-10 difficulty within skill
-  lastReviewed: Date;
-  nextReview: Date;       // SM-2
-  history: AttemptRecord[];
-}
-
-interface MasteryTracker {
-  recordAttempt(skillId: string, correct: boolean, responseMs: number, difficulty: number): void;
-  getRecommendedLevel(skillId: string): number;
-  getDueReviews(): SkillNode[];
-  shouldPromote(skillId: string): boolean;
-  shouldDemote(skillId: string): boolean;
-}
+const router = await MidiRouter.detect();
+await router.connect();
+router.onNote((e) => inputBus.emit({ type: "midi", ... }));
 ```
-
-Persisted to IndexedDB via Dexie.
 
 ---
 
-## Game Architecture Pattern
-
-Every game follows the same shell:
+## Audio Stack
 
 ```
-GameShell
-├── Header (lives, score, pause)
-├── GameCanvas (game-specific UI)
-├── FeedbackOverlay (correct/wrong + teaching moment)
-└── Footer (primary action buttons — thumb zone)
+Tone.Transport  ──►  groove backing, metronome, rhythm grading
+AudioService    ──►  smplr instruments (note playback)
+GrooveEngine    ──►  gospel organ pad, jazz ride patterns (samples)
 ```
 
-Each game implements:
+Sample-first always. Metronome click = short noise burst, not sine wave.
+
+---
+
+## Notation in Pixi
+
+1. VexFlow renders to offscreen canvas
+2. `PIXI.Texture.from(canvas)` → sprite in NotationLayer
+3. Cache textures by note/chord hash
+4. Animate sprite position in `useTick` (Note Bounce pattern)
+
+---
+
+## Game Registration
 
 ```typescript
-interface GameDefinition {
-  id: string;
-  name: string;
-  slug: string;
-  category: GameCategory;
-  skillNodes: string[];           // links to adaptive tree
-  generateQuestion(level: number, rng: RNG): Question;
-  evaluateAnswer(question: Question, answer: UserAnswer): Evaluation;
-  renderQuestion(props: QuestionRenderProps): ReactNode;
-  renderAnswerInput(props: AnswerInputProps): ReactNode;
-  getTeachingMoment(question: Question, evaluation: Evaluation): TeachingMoment;
-}
+// src/games/registry.ts
+export const GAME_REGISTRY = {
+  "rhythmic-parrot": {
+    loadScene: () => import("./rhythmic-parrot/scene"),
+    mechanics: () => import("./rhythmic-parrot/mechanics"),
+    biomes: ["interval-canyon"],
+    requiresMidi: false,
+  },
+  // ...
+};
 ```
 
-This registry pattern lets us:
-- Launch games from a central catalog
-- Share adaptive logic
-- Test question generation in isolation (no React)
+Hub reads registry for world map pins — not hardcoded lists.
 
 ---
 
-## Data Flow
+## PWA & Performance
 
-```
-User action
-  → Game component
-  → evaluateAnswer() [pure function]
-  → MasteryTracker.recordAttempt()
-  → IndexedDB persist
-  → FeedbackOverlay with teaching moment
-  → Next question from generateQuestion(level)
-```
-
-Audio playback is side-effect: `AudioService.playChord(...)` called when question renders.
+- Dynamic `import()` for every Pixi scene (code split per game)
+- `resolution: Math.min(devicePixelRatio, 2)` on Pixi Application
+- Atlas packing for biome sprites
+- Service worker: app shell + piano sample subset
+- Audio unlocked on first tap anywhere in hub
 
 ---
 
-## PWA & Offline
+## Testing
 
-- Service worker caches app shell + piano samples (core subset ~5MB)
-- Game progress in IndexedDB (works offline)
-- Sample packs downloaded on-demand, cached by version hash
-
----
-
-## Security & Privacy
-
-- Microphone: requested only when entering voice games; never background
-- MIDI: no data sent to server (local-first Phase 0–4)
-- No third-party analytics in Phase 0 (add privacy-respecting analytics later if needed)
+| Target | Tool |
+|--------|------|
+| `mechanics.ts` | Vitest — 95%+ coverage |
+| `MidiTransport` parsers | Vitest fixtures |
+| `GameRuntime` | Vitest integration |
+| Hub navigation | Playwright mobile |
+| Game scene smoke | Playwright — load scene, tap start, one interaction |
 
 ---
 
-## CI Pipeline
+## Key Decisions
 
-```yaml
-# .github/workflows/ci.yml
-on: [push, pull_request]
-jobs:
-  test:
-    - npm ci
-    - npm run lint
-    - npm run test:unit
-    - npm run test:e2e  # Playwright with mocked audio
-    - npm run build
-```
+| Decision | Choice |
+|----------|--------|
+| Game rendering | PixiJS v8 (not DOM quiz cards) |
+| Game framework | Custom GameRuntime (not Phaser — we need fine control + React hub) |
+| Safari MIDI | MIDI Link companion + beacio BLE |
+| Gospel content | GrooveEngine + curriculum tags from Phase 1 |
 
----
-
-## Key Technical Decisions
-
-| Decision | Choice | Alternatives considered |
-|----------|--------|------------------------|
-| Framework | Next.js | Vite SPA (less PWA tooling), Expo (native not needed yet) |
-| Samples | smplr + self-hosted SFZ | Tone.js Synth (rejected — sounds fake) |
-| Notation | VexFlow programmatic | ABC.js (less flexible for games) |
-| State | Zustand | Redux (overkill), Context (performance) |
-| Persistence | Dexie/IndexedDB | localStorage (too small) |
-| Pitch | pitchy | aubiojs (GPL concern for commercial) |
-
-See [DECISIONS.md](./DECISIONS.md) for full ADR log.
+See [DECISIONS.md](./DECISIONS.md).

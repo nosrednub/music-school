@@ -19,22 +19,19 @@ description: Core development conventions for the Music School mobile-first PWA.
 
 ## Module Boundaries
 - `src/lib/theory/` — pure TS, NO React, NO browser APIs. Must be unit-tested.
-- `src/lib/audio/` — Web Audio, smplr. Mock in tests.
-- `src/games/` — one folder per game implementing `GameDefinition`
-- `src/components/game/` — shared GameShell (lives, XP, feedback)
-
-## Before Committing
-- Run `npm run lint` and `npm run test:unit`
-- Husky pre-commit hook enforces this on staged files
+- `src/game-engine/` — GameRuntime, InputBus, SceneLoader
+- `src/games/[slug]/` — PixiJS scene + `mechanics.ts` per game (NOT quiz components)
+- `src/lib/midi/` — MidiTransport + MidiRouter (see docs/MIDI.md)
+- `src/components/coach/` — React overlay only
 
 ## Key Docs
-- `docs/PLAN.md` — roadmap and vision
-- `docs/ARCHITECTURE.md` — module structure
-- `docs/GAMES.md` — per-game specs
-- `docs/CURRICULUM.md` — theory content
+- `docs/GAME-DESIGN-VISION.md` — **primary game spec** (real mechanics)
+- `docs/MIDI.md` — cross-platform MIDI including Safari
+- `docs/PLAN.md` — roadmap
+- `docs/BACKLOG.md` — monetization, accounts, multiplayer (deferred)
 
 ## Do NOT
-- Use Web Audio oscillators as primary instrument sound (metronome click only)
-- Put music theory math inside React components
-- Block the app when MIDI is unavailable — always provide fallback input
-- Create AudioContext before user gesture (mobile will stay suspended)
+- Build multiple-choice quiz flows as game UI
+- Use Web Audio oscillators as primary instrument sound
+- Call navigator.requestMIDIAccess from game code — use MidiRouter
+- Use React useState for per-frame animation — use Pixi useTick

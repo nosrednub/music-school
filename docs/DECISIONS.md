@@ -110,12 +110,54 @@
 
 ---
 
+## ADR-009: PixiJS Game Engine (Not Quiz UI)
+
+**Status:** Accepted  
+**Date:** 2026-07-19
+
+**Context:** Ideator rejected multiple-choice quiz flows. Games must be visual and engaging.
+
+**Decision:** Each game is a **PixiJS v8 scene** (@pixi/react, dynamic import). React handles hub + coach overlay only.
+
+**Rationale:** 60fps mobile gameplay, distinct mechanics per title, proven pattern (Ivory Quest, Note Bounce).
+
+**Consequences:** Larger bundle per game (code split); no SSR on game routes; team must learn Pixi useTick patterns.
+
+---
+
+## ADR-010: Unified MidiTransport + MIDI Link for Safari
+
+**Status:** Accepted  
+**Date:** 2026-07-19
+
+**Context:** MIDI required on Mac Safari, mobile Safari, Chrome, Android. Safari has no Web MIDI API.
+
+**Decision:**
+- `MidiTransport` abstraction with Web MIDI, BLE, beacio (iOS), and **Music School MIDI Link** (Mac Safari USB)
+- Open-source Tauri menubar app in `packages/midi-link/`
+
+**Rationale:** Professional cross-platform solution; no deprecated NPAPI plugins.
+
+---
+
+## ADR-011: Gospel Content from Phase 1
+
+**Status:** Accepted  
+**Date:** 2026-07-19
+
+**Decision:** Gospel progressions, scales, and grooves in Phase 1 (Chapel Grove biome, Route VI Chapel Line).
+
+---
+
+## ADR-012: Movable-Do Solfège (Confirmed)
+
+**Status:** Accepted  
+**Date:** 2026-07-19
+
+**Decision:** Movable-do default for Solfègiator, Interval Barks, vocal games. Best pedagogy for relative pitch + gospel line singing.
+
+---
+
 ## ADR-008: Movable-Do Default Solfège
 
-**Status:** Proposed (pending ideator input)
-
-**Context:** Classical vs jazz/gospel solfège traditions differ.
-
-**Decision:** Default movable-do; user can switch to fixed-do or numbers in settings.
-
-**Open:** Confirm with ideator.
+**Status:** Superseded by ADR-012

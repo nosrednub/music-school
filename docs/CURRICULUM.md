@@ -33,14 +33,21 @@ Content organized by skill tree nodes. Classical foundation → jazz extensions 
 | Diminished (WH) | Whole-half over dim7 |
 | Lydian Dominant | ♯4 ♭7 — tritone sub |
 
-### Tier 4 — Gospel & Popular
+### Tier 4 — Gospel & Popular (Phase 1 — Chapel Grove)
 | Scale | Use |
 |-------|-----|
-| Major Pentatonic | Melodic simplicity |
-| Minor Pentatonic | Blues/gospel runs |
+| Major Pentatonic | Gospel melody runs |
+| Minor Pentatonic | Blues/gospel |
 | Blues (hexatonic) | ♭3 ♭5 ♭7 |
-| Mixolydian ♭6 | Gospel "church" sound |
-| Gospel double-time feel patterns | Rhythmic, not a scale — tagged in progressions |
+| Mixolydian | Church dominant sound — **Phase 1** |
+| Mixolydian ♭6 | Gospel color tone — **Phase 1** |
+
+**Gospel progressions (Route VI Chapel Line, Phase 1):**
+- I–vi–IV–V with passing chords
+- Backdoor ♭VII → I
+- Deceptive cadences with diminished passing
+
+**Groove backing:** Organ pad + shuffle (Scale Studio, Route VI)
 
 **Scale Studio:** Each scale includes fingering suggestions (piano), ascending/descending patterns, and "in context" backing progression.
 
@@ -111,11 +118,12 @@ Major, minor, diminished, augmented
 - iii–VI–ii–V turnaround
 - Rhythm changes (I–vi–ii–V)
 
-### Gospel
+### Gospel (Phase 1 — not deferred)
 - I–vi–IV–V with passing chords
 - Backdoor progression (♭VII → I)
 - Deceptive gospel cadences
 - "Church" voicings: add 9ths, slide from 4 to 3
+- **Route VI Chapel Line** playable in Phase 1
 
 ---
 

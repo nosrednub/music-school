@@ -1,298 +1,205 @@
 # Music School — Master Plan
 
-> **Vision:** A mobile-first, gamified music theory academy that teaches deeply — not drills blindly. Classical and jazz foundations with a gospel twist, graduating toward embedded AI tutoring over time.
+> **Vision:** A mobile-first **game studio for music theory** — not a quiz app. Classical, jazz, and **gospel from day one**. Real samples, real MIDI everywhere we can engineer it, real teaching through play.
 
 ---
 
-## North Star
+## North Star (Revised)
 
 | Principle | What it means |
 |-----------|---------------|
-| **Teach, don't drill** | Every game explains *why* an answer is correct. Wrong answers trigger micro-lessons, not just red X's. |
-| **Feel like a game** | Progression, streaks, lives, worlds, and satisfying audio/visual feedback — not a quiz app skin. |
-| **Sound real** | Sample-based instruments (SFZ/SF2), never bare oscillators. Future: browser physical modeling. |
-| **Mobile first** | Touch targets ≥ 44px, thumb zones, offline-capable PWA, AudioContext unlock on first tap. |
-| **Adapt to the learner** | Placement test → skill tree → spaced repetition + difficulty scaling per concept. |
-| **MIDI when possible** | USB/BLE MIDI on Android Chrome; graceful fallbacks everywhere else. |
+| **Play, don't pick** | Drag bridges, route trains, tap rhythms, perform on keys — never default to multiple choice |
+| **See the music** | PixiJS game worlds with notation baked into scenes — not text cards |
+| **Teach in the flow** | 5-second coach overlay after failure; no blocking lectures |
+| **Sound real** | smplr + self-hosted SFZ (Salamander, Sonatina) — never bare synth oscillators |
+| **MIDI everywhere** | Unified MidiTransport: Web MIDI, BLE, beacio (iOS Safari), MIDI Link (Mac Safari USB) |
+| **Gospel is core** | Chapel Grove biome, gospel progressions, organ pads — Phase 1, not Phase 4 |
+| **Adapt invisibly** | GameRuntime adjusts tolerance and content — player feels skill growth, not tests |
 
 ---
 
-## Repository Identity
+## What We Are NOT Building
 
-- **Current name:** `music-school`
-- **Future name:** May graduate (e.g. `harmony-lab`, `theory-quest`) when AI tutoring ships
-- **Audience:** Self-directed learners leveling up in theory — ear training, reading, and keyboard fluency
+- ❌ Multiple-choice quiz flows with game icons
+- ❌ Duolingo-style "pick the right answer" as primary interaction
+- ❌ Placement tests that feel like exams
+- ❌ Oscillator-based piano sounds
+- ❌ "Safari doesn't support MIDI" as an excuse — we ship bridges
+
+**Quality bar:** Ivory Quest, Note Bounce, Chord Crush, Rhythm Heaven — each of our games has a distinct mechanic (see [GAME-DESIGN-VISION.md](./GAME-DESIGN-VISION.md)).
 
 ---
 
-## Tech Stack (Recommended)
+## Tech Stack (Revised)
 
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
-| Framework | **Next.js 15** (App Router) | SSR/PWA, great DX, easy deploy |
-| Language | **TypeScript** | Music theory is inherently typed (Note, Interval, Chord…) |
-| Styling | **Tailwind CSS** + **shadcn/ui** | Mobile-first, accessible components |
-| Audio engine | **Web Audio API** + **smplr** | Realistic samples, no server required |
-| Sample sources | **sfzinstruments**, **Salamander**, **Sonatina Orchestra** | Open, high-quality, community-maintained |
-| MIDI input | **Web MIDI API** (+ Web Bluetooth MIDI where needed) | Native browser, no plugin |
-| Pitch detection | **pitchy** (monophonic voice games) | Lightweight, real-time, MIT |
-| Notation | **VexFlow** (programmatic) + **OSMD** (MusicXML) | Sight-reading games |
-| Rhythm | Custom scheduler on **AudioContext.currentTime** | Sub-10ms tap accuracy |
-| State | **Zustand** + **IndexedDB** (via Dexie) | Offline progress persistence |
-| Adaptive engine | Custom **MasteryTracker** (SM-2 + Bayesian-lite) | Spaced repetition per skill node |
-| Testing | **Vitest** (unit) + **Playwright** (E2E) + **Testing Library** | Fast feedback loop |
-| Git hooks | **Husky** + **lint-staged** | Pre-commit lint + test on changed files |
-
----
-
-## Platform Constraints (Critical)
-
-### Web MIDI on Mobile
-
-| Platform | USB MIDI | BLE MIDI | Fallback |
-|----------|----------|----------|----------|
-| Android Chrome/Edge/Samsung | ✅ | ✅ (Web Bluetooth) | — |
-| Android Firefox | ❌ | ❌ | On-screen keyboard |
-| iOS Safari / all iOS browsers | ❌ | ❌ | On-screen keyboard + touch input |
-| Desktop Chrome/Firefox/Edge | ✅ | ✅ | — |
-
-**Strategy:** Detect capability at runtime. Show a friendly "Connect MIDI" panel on supported browsers. On iOS, promote the responsive on-screen piano and voice/tap games. Never block the app — MIDI is enhancement, not requirement.
-
-### Audio on Mobile
-
-- AudioContext must be resumed after user gesture (tap "Start").
-- Preload samples progressively (piano first, orchestra lazy-load).
-- Use `AudioWorklet` for low-latency scheduling where supported.
+| App shell | **Next.js 15** (App Router) | Hub, PWA, routing; games dynamic-imported (no SSR on canvas) |
+| Language | **TypeScript** strict | Theory + game logic typed end-to-end |
+| Hub UI | **Tailwind** + **shadcn/ui** | World map, settings, connect MIDI |
+| **Game engine** | **PixiJS v8** + **@pixi/react** | 60fps mobile WebGL, Canvas fallback |
+| Physics | **Matter.js** | Lander, Calibrator, fruit arcs in Rhythmic Parrot |
+| Animation | **GSAP** + Pixi `useTick` | Imperative motion; React for structure only |
+| Audio samples | **smplr** → self-hosted SFZ | Realistic piano/strings (see AUDIO.md) |
+| Audio timing | **Tone.js Transport** | Rhythm games, groove backing |
+| MIDI | **MidiTransport** abstraction | Web MIDI, BLE, beacio, MIDI Link — see MIDI.md |
+| Voice | **pitchy** | Melody Jay, Solfègiator, Interval Barks |
+| Notation in games | **VexFlow → RenderTexture** | Staff sprites inside Pixi scenes |
+| State | **Zustand** + **Dexie** (IndexedDB) | Anonymous local progress |
+| Adaptive | **GameRuntime** + **MasteryTracker** | Per-game difficulty, invisible |
+| Testing | **Vitest** + **Playwright** | Theory 95%+ coverage; E2E per game scene |
+| Mac Safari MIDI | **Music School MIDI Link** (Tauri) | Open-source menubar CoreMIDI → WebSocket |
 
 ---
 
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Mobile Browser (PWA)                     │
-├─────────────────────────────────────────────────────────────┤
-│  UI Layer          │  Game Shells (17 games)                │
-│  (React + Tailwind)│  Shared: lives, timer, feedback, XP    │
-├────────────────────┼────────────────────────────────────────┤
-│  Game Engines      │  ChordEngine │ IntervalEngine │ …       │
-├────────────────────┼────────────────────────────────────────┤
-│  Core Services     │  AudioService │ MidiService │ Notation  │
-│                    │  PitchService │ RhythmEngine            │
-├────────────────────┼────────────────────────────────────────┤
-│  Theory Library    │  Scales │ Chords │ Progressions │ …    │
-│  (pure TS, tested) │  Jazz voicings │ Gospel substitutions   │
-├────────────────────┼────────────────────────────────────────┤
-│  Adaptive Layer    │  MasteryTracker │ PlacementTest        │
-│                    │  SkillTree │ SpacedRepetition            │
-├────────────────────┼────────────────────────────────────────┤
-│  Persistence       │  IndexedDB (progress, settings, cache) │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Next.js Hub (React) — world map, settings, MIDI connect UI       │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ dynamic import
+┌────────────────────────────▼─────────────────────────────────────┐
+│  GameScene (PixiJS) × 17 — unique mechanics per game              │
+│  WorldLayer │ PlayLayer │ NotationLayer │ FeedbackLayer           │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+┌────────────────────────────▼─────────────────────────────────────┐
+│  GameRuntime — scoring, adaptive level, InputBus, Coach triggers    │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+┌────────────────────────────▼─────────────────────────────────────┐
+│  Services: AudioService │ MidiRouter │ PitchService │ GrooveEngine │
+│  Theory Library (pure TS) │ MasteryTracker │ Dexie persistence     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for module boundaries and [GAMES.md](./GAMES.md) for per-game specs.
+Full module boundaries: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 
-## Phased Roadmap
+## MIDI — Cross-Platform (Summary)
 
-### Phase 0 — Foundation (Weeks 1–3) ← **We are here**
+Safari does not ship Web MIDI. We solve it:
 
-- [x] Planning docs, Cursor skills, git hooks
-- [ ] Next.js scaffold, design tokens, PWA manifest
-- [ ] `AudioService` with Salamander piano via smplr
-- [ ] `TheoryLibrary`: notes, intervals, scales (major, natural/harmonic/melodic minor, modes)
-- [ ] `MasteryTracker` skeleton + placement test (10 questions)
-- [ ] Home screen + game launcher shell
-- [ ] CI: lint, unit tests, Playwright smoke test
+| Target | Solution |
+|--------|----------|
+| Mac Chrome / Android Chrome | Native Web MIDI |
+| Mac Safari USB | **MIDI Link** companion (open source) |
+| iOS Safari BLE | **@beacio/core** + Bluetooth MIDI keyboard |
+| All | Virtual on-screen piano (same event shape) |
 
-**Exit criteria:** Tap a note on mobile, hear realistic piano. Pass placement test, see personalized skill tree.
+Details: [MIDI.md](./MIDI.md).
 
-### Phase 1 — MVP Games (Weeks 4–8)
+---
 
-Ship 5 games that cover the core pillars (intervals, chords, scales, rhythm, melody):
+## Content Pillars (All Active Phase 1)
 
-| Game | Pillar | Why first |
-|------|--------|-----------|
-| **Intervalis** | Intervals (harmonic) | Foundation for everything else |
-| **Departurer** | Intervals (melodic ascending) | Ear training baseline |
-| **Lander** | Intervals (melodic descending) | Pairs with Departurer |
-| **Chordelius** | Chord quality | Jazz/classical harmony entry |
-| **Scale Spy** | Scale identification | Connects to MIDI scale practice |
+| Pillar | Classical | Jazz | Gospel (now) |
+|--------|-----------|------|--------------|
+| Scales | Major, minor modes | Bebop, altered | Mixolydian, pentatonic, blues |
+| Harmony | I–IV–V | ii–V–I, tritone sub | I–vi–IV–V + passing dim, backdoor |
+| Groove | Straight metronome | Swing ride | Shuffle, organ pad backing |
+| Solfège | Movable-do default | Same | Same — sings the church line |
 
-Plus: **Scale Studio** (MIDI/on-screen keyboard scale practice mode — not a quiz game, a practice lab).
+---
 
-**Exit criteria:** 5 playable games, adaptive difficulty, progress saved offline.
+## Phased Roadmap (Revised)
 
-### Phase 2 — Rhythm & Melody (Weeks 9–12)
+### Phase 0 — Foundation ← **We are here**
 
-| Game | Notes |
-|------|-------|
-| **Rhythmic Parrot** | Tap timing with visual metronome |
-| **Rhythmania** | Rhythm dictation (see notation → tap) |
-| **Melody Hunter** | Listen → replay on keyboard |
-| **Melodix** | Listen → select pitches (multiple choice variant) |
+- [x] Planning docs, skills, test hooks, theory library stub
+- [ ] **GameRuntime** + PixiJS dynamic-import shell
+- [ ] **AudioService** (smplr piano) + **Tone.js Transport**
+- [ ] **MidiTransport** (Virtual + WebMidi)
+- [ ] World map hub (3 biomes: Canyon, Chapel, Junction)
 
-Add: violin/cello samples (Sonatina), guitar (decentsamples).
+### Phase 1 — Prove the Game Studio (not "5 quizzes")
 
-### Phase 3 — Notation & Voice (Weeks 13–18)
+| # | Game | Proves |
+|---|------|--------|
+| 1 | **Rhythmic Parrot** | Touch timing, Tone transport, juice VFX |
+| 2 | **Intervalis** | Pixi drag mechanic, harmonic audio |
+| 3 | **Scale Studio** | MIDI performance loop, scale library |
+| 4 | **Route VI** (Gospel Chapel line) | Track routing, gospel progressions |
+| 5 | **Notationist** | Action + VexFlow texture, keyboard/MIDI |
 
-| Game | Notes |
-|------|-------|
-| **Notationist** | Treble clef speed reading |
-| **Bassonist** | Bass clef speed reading |
-| **Melody Jay** | Sing back melody (pitchy) |
-| **Solfègiator** | Sight-sing from notation |
-| **Interval Barks** | Sing displayed interval |
+Plus: **BleMidiTransport**, **beacio** integration, **MIDI Link** alpha (Mac Safari).
 
-Voice games need microphone permission UX and noise-tolerant scoring.
+**Exit criteria:** Five distinct game feels; MIDI on Mac Chrome + Android Chrome + Mac Safari (via Link); gospel content playable.
 
-### Phase 4 — Advanced Harmony (Weeks 19–24)
+### Phase 2 — Melody & Chord Games
 
-| Game | Notes |
-|------|-------|
-| **Route VI** | Chord progressions + life-ring bass hints |
-| **Inversionist** | Chord inversions |
-| **Calibrator** | Compare interval sizes |
+Melody Hunter, Melodix, Chordelius, Departurer, Lander, Scale Spy — each with unique scene from GAME-DESIGN-VISION.md.
 
-Jazz extensions (7ths, 9ths, altered dominants), gospel substitutions (II–V–I with passing chords, church modes).
+### Phase 3 — Voice & Advanced Rhythm
+
+Melody Jay, Solfègiator, Interval Barks, Rhythmania, Bassonist.
+
+### Phase 4 — Deep Harmony
+
+Inversionist, Calibrator, jazz voicing expansions.
 
 ### Phase 5 — AI Tutor (Future)
 
-- Embedded AI explains mistakes in natural language
-- Generates custom exercises from weak areas
-- Conversational "why does this progression work?" mode
-- Repo may graduate to a new name at this point
+Embedded coach; possible repo graduation. See [BACKLOG.md](./BACKLOG.md).
 
 ---
 
-## Adaptive Learning Model
+## Adaptive Learning (Invisible)
 
-### Placement Test (10 min)
-
-1. Interval identification (5 Q)
-2. Chord quality (3 Q)
-3. Scale identification (2 Q)
-
-→ Maps to starting nodes on the skill tree.
-
-### Per-Skill Mastery (0–100)
-
-```
-score = weighted(recent_accuracy, response_time, streak, difficulty_level)
-```
-
-- **Promote** when score ≥ 80 over last 10 attempts at current level
-- **Demote** when score < 50 over last 5 attempts (gentle, no punishment UX)
-- **Spaced repetition:** review due items injected between new content (SM-2 intervals)
-
-### Skill Tree (Top-Level Branches)
-
-```
-Ear Training
-├── Intervals (harmonic, ascending, descending)
-├── Chords (triads → 7ths → extensions)
-├── Scales & Modes
-├── Melody dictation
-└── Rhythm
-
-Reading
-├── Treble clef
-├── Bass clef
-└── Lead sheet symbols
-
-Harmony
-├── Diatonic functions (I–IV–V)
-├── Jazz II–V–I
-└── Gospel reharmonization
-
-Performance
-├── MIDI scale fluency
-├── Voice accuracy
-└── Rhythm tapping
-```
-
-See [CURRICULUM.md](./CURRICULUM.md) for theory content mapping.
+- No placement test — drop into **Interval Canyon**, difficulty adapts from attempt 1
+- **GameRuntime** tracks accuracy, timing variance, streak per skill node
+- Promote: smoother animations, tighter tolerance, richer content (gospel/jazz mix)
+- Demote: wider timing windows, fewer chord extensions — never punishing copy
+- Spaced repetition: "Daily Grove" revisits weak skills inside game scenes (e.g. extra bridge in Intervalis)
 
 ---
 
 ## Design Direction
 
-### Visual Language
-
-- **Palette:** Deep navy `#0F172A`, warm gold `#F59E0B`, cream `#FEF3C7`, accent coral `#F97316`
-- **Typography:** Display — "Fraunces" or "Playfair Display"; UI — "DM Sans"
-- **Iconography:** Custom music glyphs (clefs, notes, intervals as visual badges)
-- **Motion:** Subtle note-bounce on correct answers; screen shake on wrong (mobile-safe)
-- **Layout:** Bottom nav (Home, Games, Practice, Profile); game controls in thumb zone
-
-### Gamification (Not Gimmicks)
-
-| Mechanic | Purpose |
-|----------|---------|
-| **Lives (3)** | Stakes without frustration — regen over time |
-| **XP + Levels** | Visible growth |
-| **Streaks** | Daily habit |
-| **Worlds** | Group games by concept (Interval Island, Chord City…) |
-| **Life-rings** | Hints (Route VI bass notes, Interval Barks reference tone) — limited per round |
-| **Post-answer teaching** | 1-sentence theory tip on every question |
+- **Hub:** Illustrated world map — biomes, not a list of quizzes
+- **Biomes:** Interval Canyon · Gospel Chapel · Jazz Junction · Deep Staff (reading) · Sky Loft (voice)
+- **Palette:** Navy `#0F172A`, gold `#F59E0B`, cream `#FEF3C7`, chapel purple `#7C3AED`
+- **Fonts:** Fraunces (display) + DM Sans (UI)
+- **Juice:** Particles, screen shake, combo counters, real orchestral stingers
 
 ---
 
-## Audio Strategy
+## Decisions Locked (Ideator, July 2026)
 
-See [AUDIO.md](./AUDIO.md) for full sample inventory and loading strategy.
-
-**Phase 0 instrument:** Salamander Grand Piano (smplr `SplendidGrandPiano` or self-hosted SFZ subset)
-
-**Never:** Web Audio oscillators as primary sound (OK for metronome click only).
-
----
-
-## Testing Strategy
-
-| Layer | Tool | What |
-|-------|------|------|
-| Theory lib | Vitest | Interval math, chord spelling, scale degrees — 100% coverage target |
-| Game logic | Vitest | Question generation, scoring, adaptive level changes |
-| Audio | Vitest + mocks | Scheduling, note mapping (no real audio in CI) |
-| Components | Testing Library | Accessibility, tap targets, game UI states |
-| E2E | Playwright | Smoke: load app, unlock audio, play one round |
-| Git hooks | Husky | Pre-commit: lint + unit tests on staged files |
-| CI | GitHub Actions | Full test suite on PR |
+| Topic | Decision |
+|-------|----------|
+| Monetization | **Backlog** — after working app ([BACKLOG.md](./BACKLOG.md)) |
+| Accounts | **Anonymous local now** |
+| Gospel | **Now** with classical + jazz |
+| Multiplayer | **Backlog** |
+| Solfège | **Movable-do** (domain default; fixed-do in settings later) |
 
 ---
 
-## Open Questions for You (Ideator)
+## Documentation Index
 
-1. **Monetization:** Free + premium worlds? One-time purchase? Subscription for AI phase?
-2. **Accounts:** Anonymous local-first vs. cloud sync from day one?
-3. **Gospel twist priority:** Phase 4, or sprinkle gospel progressions earlier as optional "flavor packs"?
-4. **Multiplayer:** Any interest in async challenges (leaderboards, friend duels)?
-5. **Language:** English-only initially, or solfège in multiple languages (movable-do vs fixed-do)?
-
----
-
-## Success Metrics
-
-| Metric | Target (Phase 1) |
-|--------|------------------|
-| Mobile Lighthouse Performance | ≥ 90 |
-| Time to first sound | < 2s after tap |
-| Game session length | 5–15 min (by design) |
-| D7 retention | Track; aim 30%+ |
-| Theory lib test coverage | ≥ 95% |
+| Doc | Purpose |
+|-----|---------|
+| [GAME-DESIGN-VISION.md](./GAME-DESIGN-VISION.md) | **Primary creative spec** — real mechanics per game |
+| [MIDI.md](./MIDI.md) | Cross-platform MIDI architecture |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Code structure |
+| [GAMES.md](./GAMES.md) | Legacy index → points to vision doc |
+| [CURRICULUM.md](./CURRICULUM.md) | Theory content (gospel integrated) |
+| [AUDIO.md](./AUDIO.md) | Sample libraries |
+| [BACKLOG.md](./BACKLOG.md) | Monetization, accounts, multiplayer |
+| [DECISIONS.md](./DECISIONS.md) | ADRs |
 
 ---
 
-## Next Actions (Implementor)
+## Next Implementation Steps
 
-1. **Your review** of this plan + answers to open questions
-2. Scaffold Next.js app (Phase 0)
-3. Implement `TheoryLibrary` + tests
-4. Implement `AudioService` with piano
-5. Build game shell + first game (Intervalis)
+1. **GameRuntime** + empty PixiJS scene with tap-to-start audio unlock
+2. **Rhythmic Parrot** vertical slice (one playable level)
+3. **WebMidiTransport** + on-screen piano
+4. **MIDI Link** repo scaffold in `packages/midi-link/`
 
 ---
 
-*Last updated: 2026-07-19*
+*Last updated: 2026-07-19 — revised after ideator feedback: games not quizzes, gospel now, MIDI everywhere.*

@@ -1,59 +1,83 @@
 ---
 name: game-design
-description: Game mechanics, UX, and adaptive learning for Music School games. Use when implementing or designing any of the 17 games.
+description: Game mechanics, PixiJS scenes, and UX for Music School. Use when implementing any game. NEVER default to multiple-choice quiz flows.
 ---
 
 # Game Design Skill
 
-## Shared Game Shell
-Every game uses GameShell with:
-- 3 lives (regenerate 1 per hour, max 3)
-- XP on correct (+10 base × level multiplier)
-- Post-answer teaching moment (always, not just on wrong)
-- Pause menu, sound toggle
-- Bottom-aligned primary controls (thumb zone)
+## Non-Negotiable
 
-## GameDefinition Interface
-Each game in `src/games/[slug]/` implements:
-- `generateQuestion(level, rng)` — pure, testable
-- `evaluateAnswer(question, answer)` — pure, testable
-- `getTeachingMoment(question, evaluation)` — returns string + optional audio cue
-- React render components for question and answer input
+**Music School games are NOT quizzes.** No "pick the right answer" as primary interaction.
 
-## Input Types by Game
-| Type | Games |
-|------|-------|
-| Multiple choice tap | Intervalis, Chordelius, Scale Spy, Route VI, … |
-| On-screen piano | Melody Hunter, Scale Studio |
-| MIDI keyboard | Melody Hunter, Scale Studio (when available) |
-| Tap rhythm | Rhythmic Parrot, Rhythmania |
-| Voice (mic) | Melody Jay, Solfègiator, Interval Barks |
-| Timed tap | Notationist, Bassonist |
+Before implementing any game:
+1. Read `docs/GAME-DESIGN-VISION.md` for that game's mechanic
+2. Implement a **PixiJS scene** with unique gameplay
+3. Put scoring/adaptive logic in pure `mechanics.ts` (Vitest tested)
+4. MC buttons are forbidden except as rare settings/debug
 
-## Adaptive Difficulty (Levels 1–10)
-- MasteryTracker decides effective level per skill node
-- Promote: ≥80% accuracy over last 10 at current level
-- Demote: <50% over last 5 (gentle messaging: "Let's practice this more")
-- Inject spaced-repetition reviews between new questions
+## Architecture
 
-## Life-Rings (Hints)
-Limited per round (2 default):
-- Route VI: replay bass notes only
-- Interval Barks: play reference interval before singing
-- General: replay question audio (costs 1 life-ring)
+```
+play/[slug]/page.tsx  →  SceneLoader (dynamic import, ssr: false)
+                        →  GameScene (@pixi/react)
+                        →  mechanics.ts (pure TS)
+                        →  GameRuntime (scoring, coach trigger)
+                        →  CoachOverlay (React portal, 5s max)
+```
 
-## Gamification Rules
-- Worlds group games visually (Interval Island, Chord City, Scale Summit…)
-- Streak counter for daily play
-- Never punish harshly — wrong answers teach, not shame
-- Celebration: subtle note-bounce animation + satisfying chord on correct
+## Input (via InputBus)
 
-## Mobile UX
-- Landscape optional but portrait primary
-- Large tap targets for rhythm games (full-width tap zone)
-- Spacebar works on desktop for rhythm games
-- Haptic feedback via `navigator.vibrate(50)` on correct (if available)
+| Game type | Input |
+|-----------|-------|
+| Rhythm | Tap timing (touch/space/MIDI pad) |
+| Intervalis | Drag bridge between pillars |
+| Route VI | Throw track switches before train arrives |
+| Melody | Perform notes on MIDI/virtual keyboard |
+| Voice | pitchy → pitch lanes |
+| Notationist | Key/MIDI before enemy reaches wall |
 
-## Reference
-Full specs: `docs/GAMES.md`  
-Curriculum mapping: `docs/CURRICULUM.md`
+All MIDI goes through `MidiRouter` — games never call Web MIDI directly.
+
+## Juice Checklist
+
+- [ ] Particle burst on success
+- [ ] Screen shake on fail (subtle on mobile)
+- [ ] Combo counter with real sample stinger
+- [ ] `navigator.vibrate(50)` on perfect hit (if available)
+- [ ] 60fps — use `useTick`, not React state per frame
+
+## Adaptive (Invisible)
+
+GameRuntime adjusts:
+- Timing tolerance (±ms for rhythm)
+- Content tier (gospel/jazz mix in Route VI, Scale Spy)
+- Speed (enemy walk rate in Notationist)
+
+Never show "Level 3" mid-game unless player opens profile.
+
+## Gospel Content (Phase 1+)
+
+- Route VI: Chapel Line — I–vi–IV–V, passing dim, backdoor
+- Scale Spy: Mixolydian + pentatonic trails in Chapel Grove
+- Scale Studio: organ pad groove option
+- Chordelius: gospel chord forge visual (purple/gold embers)
+
+## Coach Overlay
+
+After failed round only:
+- One sentence theory tip
+- Optional "replay sound" button
+- Auto-dismiss 5s or tap continue
+- Never blocks next attempt
+
+## Reference Games
+
+Ivory Quest (action notation), Note Bounce (rhythm staff), Chord Crush (puzzle), Rhythm Heaven (timing).
+
+## Phase 1 Build Order
+
+1. Rhythmic Parrot — timing + Tone.Transport
+2. Intervalis — drag mechanic
+3. Scale Studio — MIDI performance
+4. Route VI — gospel routing
+5. Notationist — action + VexFlow texture
