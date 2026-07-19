@@ -51,9 +51,9 @@ export const GAME_CATALOG: GameDefinition[] = [
     name: "Rhythmic Parrot",
     slug: "rhythmic-parrot",
     category: "rhythm",
-    description: "Rhythm imitation",
+    description: "Tap when the fruit hits the beak — Rhythm Heaven-style",
     skillNodes: ["rhythm-imitation"],
-    phase: 2,
+    phase: 1,
   },
   {
     id: "melody-hunter",

@@ -24,7 +24,7 @@ const HomePage = () => {
           Phase 1 Games
         </h2>
         <p className="mt-1 text-sm text-gold-light/60">
-          Coming soon — foundation ear training
+          Rhythmic Parrot is playable — more games incoming
         </p>
         <ul className="mt-4 space-y-3">
           {phase1Games.map((game) => (
@@ -46,15 +46,11 @@ const HomePage = () => {
 
       <section className="rounded-2xl border border-gold/20 bg-gold/5 p-6">
         <h2 className="font-display text-lg font-semibold text-gold-light">
-          Planning Complete
+          Try Rhythmic Parrot
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-gold-light/70">
-          Architecture, curriculum, Cursor skills, and test hooks are in place.
-          See{" "}
-          <code className="rounded bg-navy px-1.5 py-0.5 text-gold">
-            docs/PLAN.md
-          </code>{" "}
-          for the full roadmap.
+          Tap when the fruit hits the beak. Silent by default — safe for
+          meetings until you toggle sound on.
         </p>
       </section>
     </main>
