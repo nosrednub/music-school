@@ -1,6 +1,27 @@
 import Link from "next/link";
 import { GAME_CATALOG } from "@/lib/games/catalog";
 
+const PLAYABLE_LINKS = [
+  {
+    href: "/games/rhythmic-parrot",
+    name: "Rhythmic Parrot",
+    description: "Tap when the fruit hits the beak",
+    badge: "rhythm",
+  },
+  {
+    href: "/games/intervalis",
+    name: "Intervalis",
+    description: "Draw the semitone bridge",
+    badge: "intervals",
+  },
+  {
+    href: "/practice/scale-studio",
+    name: "Scale Studio",
+    description: "Sheet music scale drills with full library",
+    badge: "practice",
+  },
+] as const;
+
 const HomePage = () => {
   const phase1Games = GAME_CATALOG.filter((game) => game.phase === 1);
 
@@ -19,12 +40,44 @@ const HomePage = () => {
         </p>
       </header>
 
+      <section className="mb-8 rounded-2xl border border-gold/40 bg-gold/10 p-6">
+        <h2 className="font-display text-xl font-semibold text-gold-light">
+          Playable now
+        </h2>
+        <p className="mt-1 text-sm text-gold-light/60">
+          Tap to open — silent by default
+        </p>
+        <ul className="mt-4 space-y-3">
+          {PLAYABLE_LINKS.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="flex min-h-11 flex-col rounded-xl bg-navy px-4 py-3 transition-colors hover:bg-navy-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold sm:flex-row sm:items-center sm:justify-between"
+                aria-label={`${item.name}: ${item.description}`}
+              >
+                <span>
+                  <span className="block font-medium text-gold-light">
+                    {item.name}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-gold-light/60">
+                    {item.description}
+                  </span>
+                </span>
+                <span className="mt-2 text-xs uppercase tracking-wide text-gold/70 sm:mt-0">
+                  {item.badge}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className="mb-8 rounded-2xl border border-navy-light bg-navy-light/50 p-6">
         <h2 className="font-display text-xl font-semibold text-gold">
           Phase 1 Games
         </h2>
         <p className="mt-1 text-sm text-gold-light/60">
-          Rhythmic Parrot, Intervalis & Scale Studio are playable
+          Full catalog — more games shipping soon
         </p>
         <ul className="mt-4 space-y-3">
           {phase1Games.map((game) => (
@@ -42,41 +95,6 @@ const HomePage = () => {
             </li>
           ))}
         </ul>
-      </section>
-
-      <section className="mb-8 rounded-2xl border border-coral/30 bg-coral/5 p-6">
-        <h2 className="font-display text-xl font-semibold text-gold-light">
-          Practice Yard
-        </h2>
-        <p className="mt-1 text-sm text-gold-light/60">
-          Keyboard & MIDI drills — not quiz games
-        </p>
-        <ul className="mt-4 space-y-3">
-          <li>
-            <Link
-              href="/practice/scale-studio"
-              className="flex min-h-11 items-center justify-between rounded-xl bg-navy px-4 py-3 transition-colors hover:bg-navy-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
-              aria-label="Scale Studio: ascending scale practice with MIDI"
-            >
-              <span className="font-medium text-gold-light">Scale Studio</span>
-              <span className="text-xs uppercase tracking-wide text-coral/80">
-                practice
-              </span>
-            </Link>
-          </li>
-        </ul>
-      </section>
-
-      <section className="rounded-2xl border border-gold/20 bg-gold/5 p-6">
-        <h2 className="font-display text-lg font-semibold text-gold-light">
-          Now playable
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-gold-light/70">
-          <strong>Rhythmic Parrot</strong> — tap timing.{" "}
-          <strong>Intervalis</strong> — draw the semitone bridge.{" "}
-          <strong>Scale Studio</strong> — sheet music scale drills with a full
-          library. All silent by default.
-        </p>
       </section>
     </main>
   );
