@@ -15,6 +15,7 @@
 | **MIDI everywhere** | Unified MidiTransport: Web MIDI, BLE, beacio (iOS Safari), MIDI Link (Mac Safari USB) |
 | **Gospel is core** | Chapel Grove biome, gospel progressions, organ pads — Phase 1, not Phase 4 |
 | **Adapt invisibly** | GameRuntime adjusts tolerance and content — player feels skill growth, not tests |
+| **Low latency (Tier A)** | Real-time games: capture input at native event, grade on refs, defer React updates — see [LATENCY.md](./LATENCY.md) |
 
 ---
 
@@ -188,7 +189,7 @@ Embedded coach; possible repo graduation. See [BACKLOG.md](./BACKLOG.md).
 | [GAMES.md](./GAMES.md) | Legacy index → points to vision doc |
 | [CURRICULUM.md](./CURRICULUM.md) | Theory content (gospel integrated) |
 | [AUDIO.md](./AUDIO.md) | Sample libraries |
-| [BACKLOG.md](./BACKLOG.md) | Monetization, accounts, multiplayer |
+| [LATENCY.md](./LATENCY.md) | Real-time input budgets (Tier A/B/C games) |
 | [DECISIONS.md](./DECISIONS.md) | ADRs |
 
 ---

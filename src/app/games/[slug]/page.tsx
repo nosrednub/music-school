@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getGameBySlug } from "@/lib/games/catalog";
+import { GameLoader } from "@/components/game/GameLoader";
+import { GAME_CATALOG, getGameBySlug } from "@/lib/games/catalog";
+
+export const generateStaticParams = () => {
+  return GAME_CATALOG.map((game) => ({ slug: game.slug }));
+};
 
 type GamePageProps = {
   params: Promise<{ slug: string }>;
@@ -14,6 +19,8 @@ const GamePage = async ({ params }: GamePageProps) => {
     notFound();
   }
 
+  const isPlayable = slug === "rhythmic-parrot";
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-8 pt-6">
       <Link
@@ -24,7 +31,7 @@ const GamePage = async ({ params }: GamePageProps) => {
         ← Back
       </Link>
 
-      <header className="mb-8">
+      <header className="mb-6">
         <p className="text-xs uppercase tracking-widest text-gold/70">
           {game.category}
         </p>
@@ -32,21 +39,14 @@ const GamePage = async ({ params }: GamePageProps) => {
           {game.name}
         </h1>
         <p className="mt-2 text-gold-light/70">{game.description}</p>
+        {isPlayable && (
+          <p className="mt-2 text-xs text-gold/60">
+            Silent by default · tap the fruit timing zone or press space
+          </p>
+        )}
       </header>
 
-      <section
-        className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-gold/30 bg-navy-light/30 p-8 text-center"
-        aria-label="Game placeholder"
-      >
-        <span className="mb-4 text-5xl" aria-hidden="true">
-          ♪
-        </span>
-        <h2 className="font-display text-xl text-gold">Coming in Phase 1</h2>
-        <p className="mt-2 max-w-xs text-sm text-gold-light/60">
-          Game engine shell and audio service are next. Check docs/GAMES.md for
-          the full spec.
-        </p>
-      </section>
+      <GameLoader slug={slug} />
     </main>
   );
 };

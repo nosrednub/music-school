@@ -1,0 +1,149 @@
+"use client";
+
+import { useCallback, useRef } from "react";
+import { inputBus } from "@/lib/midi/inputBus";
+import { playNote, unlockAudio } from "@/lib/audio/audioService";
+import { midiToPitch } from "@/lib/theory/notes";
+import { cn } from "@/lib/utils";
+
+const WHITE_KEYS = [
+  { midi: 48, label: "C" },
+  { midi: 50, label: "D" },
+  { midi: 52, label: "E" },
+  { midi: 53, label: "F" },
+  { midi: 55, label: "G" },
+  { midi: 57, label: "A" },
+  { midi: 59, label: "B" },
+  { midi: 60, label: "C" },
+  { midi: 62, label: "D" },
+  { midi: 64, label: "E" },
+  { midi: 65, label: "F" },
+  { midi: 67, label: "G" },
+  { midi: 69, label: "A" },
+  { midi: 71, label: "B" },
+  { midi: 72, label: "C" },
+];
+
+const BLACK_KEYS = [
+  { midi: 49, afterWhite: 0 },
+  { midi: 51, afterWhite: 1 },
+  { midi: 54, afterWhite: 3 },
+  { midi: 56, afterWhite: 4 },
+  { midi: 58, afterWhite: 5 },
+  { midi: 61, afterWhite: 7 },
+  { midi: 63, afterWhite: 8 },
+  { midi: 64, afterWhite: 9 },
+  { midi: 66, afterWhite: 10 },
+  { midi: 68, afterWhite: 11 },
+  { midi: 70, afterWhite: 12 },
+];
+
+type OnScreenPianoProps = {
+  highlightedMidi?: Set<number>;
+  nextMidi?: number | null;
+  muted?: boolean;
+  onNoteOn?: (midi: number) => void;
+};
+
+export const OnScreenPiano = ({
+  highlightedMidi = new Set(),
+  nextMidi = null,
+  muted = true,
+  onNoteOn,
+}: OnScreenPianoProps) => {
+  const activeRef = useRef<Set<number>>(new Set());
+
+  const handleNoteStart = useCallback(
+    async (midi: number) => {
+      if (activeRef.current.has(midi)) {
+        return;
+      }
+      activeRef.current.add(midi);
+
+      inputBus.emitVirtualNote(midi, "noteon");
+      onNoteOn?.(midi);
+
+      if (!muted) {
+        await unlockAudio();
+        await playNote(midiToPitch(midi), 0.4, 75);
+      }
+    },
+    [muted, onNoteOn],
+  );
+
+  const handleNoteEnd = useCallback((midi: number) => {
+    activeRef.current.delete(midi);
+    inputBus.emitVirtualNote(midi, "noteoff", 0);
+  }, []);
+
+  const whiteWidth = 100 / WHITE_KEYS.length;
+
+  return (
+    <div
+      className="relative mx-auto w-full max-w-lg select-none touch-manipulation"
+      style={{ height: 140 }}
+      role="group"
+      aria-label="On-screen piano keyboard"
+    >
+      <div className="absolute inset-x-0 bottom-0 flex h-[120px]">
+        {WHITE_KEYS.map((key) => {
+          const isHighlight = highlightedMidi.has(key.midi);
+          const isNext = nextMidi === key.midi;
+          return (
+            <button
+              key={key.midi}
+              type="button"
+              className={cn(
+                "relative flex-1 border border-navy/40 bg-gold-light/90 text-[10px] text-navy/70",
+                "active:bg-gold min-h-[120px] rounded-b-md",
+                isHighlight && "bg-gold/40 ring-2 ring-gold",
+                isNext && "ring-2 ring-coral bg-gold/60",
+              )}
+              style={{ width: `${whiteWidth}%` }}
+              aria-label={`${key.label} ${Math.floor(key.midi / 12) - 1}`}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                void handleNoteStart(key.midi);
+              }}
+              onPointerUp={() => handleNoteEnd(key.midi)}
+              onPointerLeave={() => handleNoteEnd(key.midi)}
+            >
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                {key.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {BLACK_KEYS.map((key) => {
+        const leftPercent = (key.afterWhite + 1) * whiteWidth - whiteWidth * 0.32;
+        const isHighlight = highlightedMidi.has(key.midi);
+        const isNext = nextMidi === key.midi;
+        return (
+          <button
+            key={`b-${key.midi}`}
+            type="button"
+            className={cn(
+              "absolute top-0 z-10 h-[72px] rounded-b-md bg-navy border border-navy-light",
+              "active:bg-navy-light min-w-[28px]",
+              isHighlight && "ring-2 ring-gold",
+              isNext && "ring-2 ring-coral",
+            )}
+            style={{
+              left: `${leftPercent}%`,
+              width: `${whiteWidth * 0.65}%`,
+            }}
+            aria-label={`Black key MIDI ${key.midi}`}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              void handleNoteStart(key.midi);
+            }}
+            onPointerUp={() => handleNoteEnd(key.midi)}
+            onPointerLeave={() => handleNoteEnd(key.midi)}
+          />
+        );
+      })}
+    </div>
+  );
+};

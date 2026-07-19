@@ -70,7 +70,17 @@ After failed round only:
 - Auto-dismiss 5s or tap continue
 - Never blocks next attempt
 
-## Reference Games
+## Latency Tiers
+
+Consult `GAME_LATENCY_TIER` in `src/game-engine/inputLatency.ts` and [LATENCY.md](../../docs/LATENCY.md).
+
+- **Tier A (real-time):** native capture listeners, no React on hot path, pre-warm audio/Pixi on Start
+- **Tier B (scheduled):** musical clock, input window before event
+- **Tier C (turn-based):** standard React UX OK
+
+Rhythmic Parrot / Rhythmania / voice games / action Notationist = Tier A.
+
+--- Games
 
 Ivory Quest (action notation), Note Bounce (rhythm staff), Chord Crush (puzzle), Rhythm Heaven (timing).
 

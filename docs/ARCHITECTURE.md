@@ -179,7 +179,18 @@ Hub reads registry for world map pins — not hardcoded lists.
 
 ---
 
-## Key Decisions
+## Performance & Latency
+
+Real-time games (rhythm, MIDI perform, voice, action notation) follow **[LATENCY.md](./LATENCY.md)**:
+
+- Input timestamp at native `pointerdown` / MIDI receive
+- Grading on refs — React updates throttled via `requestAnimationFrame`
+- Audio: `latencyHint: 'interactive'`, Tone.js Transport for musical clock
+- Turn-based games (Intervalis, Chordelius, etc.) — clarity over milliseconds
+
+`src/game-engine/inputLatency.ts` — shared capture helpers + per-game tier map.
+
+---
 
 | Decision | Choice |
 |----------|--------|
