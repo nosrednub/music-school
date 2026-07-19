@@ -58,6 +58,7 @@ const PLAYABLE_SLUGS = new Set([
   "intervalis",
   "route-vi",
   "notationist",
+  "departurer",
 ]);
 
 export const isGamePlayable = (slug: string): boolean =>

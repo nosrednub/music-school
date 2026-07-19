@@ -27,6 +27,12 @@ const PLAYABLE_LINKS = [
     badge: "reading",
   },
   {
+    href: "/games/departurer",
+    name: "Departurer",
+    description: "Set rocket fuel to match the ascending interval",
+    badge: "intervals",
+  },
+  {
     href: "/practice/scale-studio",
     name: "Scale Studio",
     description: "Sheet music scale drills with full library",

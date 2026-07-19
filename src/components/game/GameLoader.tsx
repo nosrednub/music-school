@@ -38,6 +38,14 @@ const NotationistGame = dynamic(
   { ssr: false, loading: () => <GameLoading /> },
 );
 
+const DeparturerGame = dynamic(
+  () =>
+    import("@/games/departurer/DeparturerGame").then(
+      (mod) => mod.DeparturerGame,
+    ),
+  { ssr: false, loading: () => <GameLoading /> },
+);
+
 type GameLoaderProps = {
   slug: string;
 };
@@ -57,6 +65,10 @@ export const GameLoader = ({ slug }: GameLoaderProps) => {
 
   if (slug === "notationist") {
     return <NotationistGame defaultMuted />;
+  }
+
+  if (slug === "departurer") {
+    return <DeparturerGame defaultMuted />;
   }
 
   return (

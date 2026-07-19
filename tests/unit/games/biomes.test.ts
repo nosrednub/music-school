@@ -8,7 +8,8 @@ describe("world biomes", () => {
 
   it("marks shipped games playable", () => {
     expect(isGamePlayable("notationist")).toBe(true);
-    expect(isGamePlayable("departurer")).toBe(false);
+    expect(isGamePlayable("departurer")).toBe(true);
+    expect(isGamePlayable("lander")).toBe(false);
   });
 
   it("groups gospel chapel with route vi and scale studio practice", () => {

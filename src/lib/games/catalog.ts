@@ -15,7 +15,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     name: "Departurer",
     slug: "departurer",
     category: "intervals",
-    description: "Ascending interval detection",
+    description: "Slide fuel to match the ascending interval — launch the rocket",
     skillNodes: ["intervals-ascending"],
     phase: 1,
   },

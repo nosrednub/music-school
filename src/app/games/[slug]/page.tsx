@@ -24,6 +24,7 @@ const GamePage = async ({ params }: GamePageProps) => {
     "intervalis",
     "route-vi",
     "notationist",
+    "departurer",
   ]);
   const isPlayable = playableSlugs.has(slug);
 
