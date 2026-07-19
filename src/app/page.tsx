@@ -15,6 +15,12 @@ const PLAYABLE_LINKS = [
     badge: "intervals",
   },
   {
+    href: "/games/route-vi",
+    name: "Route VI",
+    description: "Throw switches on the gospel Chapel Line",
+    badge: "harmony",
+  },
+  {
     href: "/practice/scale-studio",
     name: "Scale Studio",
     description: "Sheet music scale drills with full library",

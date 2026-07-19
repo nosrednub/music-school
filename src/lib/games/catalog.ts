@@ -69,7 +69,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     name: "Route VI",
     slug: "route-vi",
     category: "harmony",
-    description: "Chord progression detection",
+    description: "Throw track switches on the gospel Chapel Line — I–vi–IV–V",
     skillNodes: ["progressions"],
     phase: 4,
   },
