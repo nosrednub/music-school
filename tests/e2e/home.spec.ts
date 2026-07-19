@@ -4,19 +4,26 @@ test.describe("Music School", () => {
   test("home page loads on mobile viewport", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Music School" })).toBeVisible();
-    await expect(page.getByText("Phase 1 Games")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Playable now" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Phase 1 Games" })).toBeVisible();
   });
 
   test("game catalog links resolve", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /Intervalis/ }).click();
+    await page
+      .getByRole("link", { name: /Intervalis: Draw the semitone bridge/ })
+      .click();
     await expect(page.getByRole("heading", { name: "Intervalis" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
   });
 
-  test("practice yard links resolve", async ({ page }) => {
+  test("playable now links include Scale Studio", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /Scale Studio/ }).click();
+    await page
+      .getByRole("link", {
+        name: /Scale Studio: Sheet music scale drills with full library/,
+      })
+      .click();
     await expect(
       page.getByRole("heading", { name: "Scale Studio" }),
     ).toBeVisible();
