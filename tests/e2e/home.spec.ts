@@ -13,4 +13,13 @@ test.describe("Music School", () => {
     await expect(page.getByRole("heading", { name: "Intervalis" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
   });
+
+  test("practice yard links resolve", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: /Scale Studio/ }).click();
+    await expect(
+      page.getByRole("heading", { name: "Scale Studio" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Play C4/)).toBeVisible();
+  });
 });
