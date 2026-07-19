@@ -30,6 +30,14 @@ const RouteVIGame = dynamic(
   { ssr: false, loading: () => <GameLoading /> },
 );
 
+const NotationistGame = dynamic(
+  () =>
+    import("@/games/notationist/NotationistGame").then(
+      (mod) => mod.NotationistGame,
+    ),
+  { ssr: false, loading: () => <GameLoading /> },
+);
+
 type GameLoaderProps = {
   slug: string;
 };
@@ -45,6 +53,10 @@ export const GameLoader = ({ slug }: GameLoaderProps) => {
 
   if (slug === "route-vi") {
     return <RouteVIGame defaultMuted />;
+  }
+
+  if (slug === "notationist") {
+    return <NotationistGame defaultMuted />;
   }
 
   return (

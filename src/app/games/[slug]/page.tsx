@@ -23,6 +23,7 @@ const GamePage = async ({ params }: GamePageProps) => {
     "rhythmic-parrot",
     "intervalis",
     "route-vi",
+    "notationist",
   ]);
   const isPlayable = playableSlugs.has(slug);
 

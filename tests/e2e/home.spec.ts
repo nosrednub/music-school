@@ -5,7 +5,7 @@ test.describe("Music School", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Music School" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Playable now" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Phase 1 Games" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Biomes" })).toBeVisible();
   });
 
   test("game catalog links resolve", async ({ page }) => {

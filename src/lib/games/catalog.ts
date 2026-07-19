@@ -56,6 +56,15 @@ export const GAME_CATALOG: GameDefinition[] = [
     phase: 1,
   },
   {
+    id: "notationist",
+    name: "Notationist",
+    slug: "notationist",
+    category: "reading",
+    description: "Press the note before the rune reaches the wall",
+    skillNodes: ["reading-treble"],
+    phase: 1,
+  },
+  {
     id: "melody-hunter",
     name: "Melody Hunter",
     slug: "melody-hunter",
@@ -71,7 +80,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     category: "harmony",
     description: "Throw track switches on the gospel Chapel Line — I–vi–IV–V",
     skillNodes: ["progressions"],
-    phase: 4,
+    phase: 1,
   },
 ];
 

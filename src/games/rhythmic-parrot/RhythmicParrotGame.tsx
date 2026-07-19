@@ -15,6 +15,10 @@ import {
   scheduleUiSync,
 } from "@/game-engine/inputLatency";
 import {
+  playTapClick,
+  unlockAudio,
+} from "@/lib/audio/audioService";
+import {
   LEVEL_1_CONFIG,
   applyGrade,
   buildBeatSchedule,
@@ -375,6 +379,14 @@ export const RhythmicParrotGame = ({
     setFlash(null);
   };
 
+  const handleToggleMute = useCallback(async () => {
+    if (muted) {
+      await unlockAudio();
+      await playTapClick();
+    }
+    setMuted((value) => !value);
+  }, [muted]);
+
   const hitRate =
     score.total > 0
       ? Math.round(((score.perfect + score.good) / score.total) * 100)
@@ -393,7 +405,7 @@ export const RhythmicParrotGame = ({
         </div>
         <button
           type="button"
-          onClick={() => setMuted((value) => !value)}
+          onClick={() => void handleToggleMute()}
           className="min-h-11 rounded-full border border-gold/30 px-4 text-sm text-gold-light hover:border-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
           aria-pressed={!muted}
           aria-label={muted ? "Sound off — tap to enable" : "Sound on — tap to mute"}
