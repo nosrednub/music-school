@@ -1,4 +1,4 @@
-import { getSharedAudioContext } from "@/lib/audio/audioContext";
+import { getSharedAudioContext, resumeFromUserGesture } from "@/lib/audio/audioContext";
 
 let padNodes: OscillatorNode[] = [];
 let padGain: GainNode | null = null;
@@ -6,8 +6,7 @@ let padGain: GainNode | null = null;
 /** Simple gospel-style organ pad on root + fifth + octave */
 export const startOrganPad = async (rootMidi: number): Promise<void> => {
   stopOrganPad();
-  const ctx = getSharedAudioContext();
-  await ctx.resume();
+  const ctx = resumeFromUserGesture();
 
   const frequencies = [rootMidi, rootMidi + 7, rootMidi + 12].map(
     (midi) => 440 * 2 ** ((midi - 69) / 12),

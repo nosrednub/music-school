@@ -15,6 +15,7 @@ import {
   scheduleUiSync,
 } from "@/game-engine/inputLatency";
 import {
+  playTapClick,
   playUnlockConfirmation,
 } from "@/lib/audio/audioService";
 import {
@@ -69,6 +70,7 @@ export const RhythmicParrotGame = ({
   const autoMissRef = useRef<number[]>([]);
   const phaseRef = useRef<GamePhase>("ready");
   const flashGradeRef = useRef<TapGrade | null>(null);
+  const mutedRef = useRef(defaultMuted);
 
   const [phase, setPhase] = useState<GamePhase>("ready");
   const [countdown, setCountdown] = useState(3);
@@ -85,6 +87,10 @@ export const RhythmicParrotGame = ({
   useEffect(() => {
     flashGradeRef.current = flash?.grade ?? null;
   }, [flash]);
+
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
 
   const drawScene = useCallback((app: Application, nowMs: number) => {
     const activeFlash = flashGradeRef.current;
@@ -243,6 +249,9 @@ export const RhythmicParrotGame = ({
         LEVEL_1_CONFIG,
       );
       registerGrade(grade, beat.index);
+      if (!mutedRef.current && (grade === "perfect" || grade === "good")) {
+        playTapClick(true);
+      }
     },
     [registerGrade],
   );
@@ -287,6 +296,14 @@ export const RhythmicParrotGame = ({
         registerGrade("miss", beat.index);
       }, delay);
       autoMissRef.current.push(timeoutId);
+
+      const clickDelay = Math.max(0, beat.hitAt - now);
+      const clickId = window.setTimeout(() => {
+        if (!mutedRef.current) {
+          playTapClick(beat.index % 4 === 0);
+        }
+      }, clickDelay);
+      autoMissRef.current.push(clickId);
     });
 
     const endDelay = Math.max(0, start + getRoundDurationMs(LEVEL_1_CONFIG) - now);
@@ -378,9 +395,9 @@ export const RhythmicParrotGame = ({
     setFlash(null);
   };
 
-  const handleToggleMute = useCallback(async () => {
+  const handleToggleMute = useCallback(() => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
     }
     setMuted((value) => !value);
   }, [muted]);
@@ -403,7 +420,7 @@ export const RhythmicParrotGame = ({
         </div>
         <button
           type="button"
-          onClick={() => void handleToggleMute()}
+          onClick={handleToggleMute}
           className="min-h-11 rounded-full border border-gold/30 px-4 text-sm text-gold-light hover:border-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
           aria-pressed={!muted}
           aria-label={muted ? "Sound off — tap to enable" : "Sound on — tap to mute"}

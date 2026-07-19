@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Application, Graphics, Text } from "pixi.js";
 import { ScaleStaffView } from "@/components/notation/ScaleStaffView";
-import { playNote, playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
+import { playNote, playUnlockConfirmation, unlockAudioSync } from "@/lib/audio/audioService";
 import { inputBus } from "@/lib/midi";
 import { cn } from "@/lib/utils";
 import {
@@ -170,8 +170,8 @@ export const NotationistGame = ({ defaultMuted = true }: NotationistGameProps) =
       }
 
       if (!mutedRef.current) {
-        await unlockAudio();
-        await playNote(active.pitch, 0.35, 80);
+        unlockAudioSync();
+        playNote(active.pitch, 0.35, 80);
       }
 
       const nextScore = scoreRef.current + 1;
@@ -241,9 +241,9 @@ export const NotationistGame = ({ defaultMuted = true }: NotationistGameProps) =
     return unsub;
   }, [resolveNote]);
 
-  const handleToggleMute = useCallback(async () => {
+  const handleToggleMute = useCallback(() => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);
@@ -332,7 +332,7 @@ export const NotationistGame = ({ defaultMuted = true }: NotationistGameProps) =
         </p>
         <button
           type="button"
-          onClick={() => void handleToggleMute()}
+          onClick={handleToggleMute}
           className="min-h-11 rounded-full border border-gold/30 px-3 text-xs"
           aria-label={muted ? "Unmute notes" : "Mute notes"}
         >

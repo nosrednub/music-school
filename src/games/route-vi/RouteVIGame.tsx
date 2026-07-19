@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Application, Graphics, Text } from "pixi.js";
-import { playChordMidis, playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
+import { playChordMidis, playUnlockConfirmation, unlockAudioSync } from "@/lib/audio/audioService";
 import { cn } from "@/lib/utils";
 import {
   CHAPEL_LINE,
@@ -201,8 +201,8 @@ export const RouteVIGame = ({ defaultMuted = true }: RouteVIGameProps) => {
       setScore(scoreRef.current);
 
       if (!mutedRef.current) {
-        await unlockAudio();
-        await playChordMidis(result.target.chordMidis);
+        unlockAudioSync();
+        playChordMidis(result.target.chordMidis);
       }
 
       const nextStep = active.stepIndex + 1;
@@ -228,9 +228,9 @@ export const RouteVIGame = ({ defaultMuted = true }: RouteVIGameProps) => {
     beginJunction(0);
   }, [beginJunction]);
 
-  const handleToggleMute = useCallback(async () => {
+  const handleToggleMute = useCallback(() => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);
@@ -313,7 +313,7 @@ export const RouteVIGame = ({ defaultMuted = true }: RouteVIGameProps) => {
         </p>
         <button
           type="button"
-          onClick={() => void handleToggleMute()}
+          onClick={handleToggleMute}
           className="min-h-11 rounded-full border border-gold/30 px-3 text-xs"
           aria-label={muted ? "Unmute chords" : "Mute chords"}
         >

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { inputBus } from "@/lib/midi/inputBus";
-import { playNote, unlockAudio } from "@/lib/audio/audioService";
+import { playNote, unlockAudioSync } from "@/lib/audio/audioService";
 import { midiToPitch } from "@/lib/theory/notes";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +31,7 @@ export const OnScreenPiano = ({
   const activeRef = useRef<Set<number>>(new Set());
 
   const handleNoteStart = useCallback(
-    async (midi: number) => {
+    (midi: number) => {
       if (activeRef.current.has(midi)) {
         return;
       }
@@ -41,8 +41,8 @@ export const OnScreenPiano = ({
       onNoteOn?.(midi);
 
       if (!muted) {
-        await unlockAudio();
-        await playNote(midiToPitch(midi), 0.4, 75);
+        unlockAudioSync();
+        playNote(midiToPitch(midi), 0.4, 75);
       }
     },
     [muted, onNoteOn],
