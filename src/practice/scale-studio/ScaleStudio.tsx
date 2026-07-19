@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MidiConnectPanel } from "@/components/midi/MidiConnectPanel";
 import { ScaleStaffView } from "@/components/notation/ScaleStaffView";
 import { OnScreenPiano } from "@/components/piano/OnScreenPiano";
 import { unlockAudio } from "@/lib/audio/audioService";
+import { startMetronome, type MetronomeHandle } from "@/lib/audio/metronome";
+import { startOrganPad, stopOrganPad } from "@/lib/audio/organPad";
 import { inputBus } from "@/lib/midi";
+import { pitchToMidi } from "@/lib/theory/notes";
 import { cn } from "@/lib/utils";
 import {
   type ExerciseId,
@@ -22,6 +25,7 @@ import {
   getScalesByCategory,
   getStaffPitchesForExercise,
   processNoteOn,
+  rootToPitch,
   searchScales,
 } from "./mechanics";
 
@@ -61,6 +65,10 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
   );
   const [feedback, setFeedback] = useState<FeedbackKind>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [metronomeOn, setMetronomeOn] = useState(false);
+  const [bpm, setBpm] = useState(72);
+  const [organPadOn, setOrganPadOn] = useState(false);
+  const metronomeRef = useRef<MetronomeHandle | null>(null);
 
   const scaleOptions = useMemo(() => {
     const byCat = getScalesByCategory(category);
@@ -131,6 +139,32 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
     setMuted((m) => !m);
   }, [muted]);
 
+  useEffect(() => {
+    if (!metronomeOn) {
+      metronomeRef.current?.stop();
+      metronomeRef.current = null;
+      return;
+    }
+    void unlockAudio();
+    metronomeRef.current = startMetronome(bpm);
+    return () => {
+      metronomeRef.current?.stop();
+      metronomeRef.current = null;
+    };
+  }, [metronomeOn, bpm]);
+
+  useEffect(() => {
+    if (muted || !organPadOn) {
+      stopOrganPad();
+      return;
+    }
+    const midi = pitchToMidi(rootToPitch(root));
+    void unlockAudio().then(() => startOrganPad(midi));
+    return () => {
+      stopOrganPad();
+    };
+  }, [muted, organPadOn, root]);
+
   const handleCategoryChange = (next: ScaleCategory | "all") => {
     setCategory(next);
     const options = getScalesByCategory(next);
@@ -176,6 +210,50 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
       </header>
 
       <MidiConnectPanel />
+
+      <section className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-gold/20 bg-navy-light/40 p-3">
+        <button
+          type="button"
+          onClick={() => setMetronomeOn((on) => !on)}
+          className={cn(
+            "min-h-10 rounded-full border px-4 text-xs",
+            metronomeOn ? "border-gold bg-gold/15 text-gold-light" : "border-gold/30 text-gold/70",
+          )}
+          aria-pressed={metronomeOn}
+        >
+          {metronomeOn ? "Metronome on" : "Metronome"}
+        </button>
+        <label className="flex items-center gap-2 text-xs text-gold/70">
+          BPM
+          <input
+            type="range"
+            min={50}
+            max={120}
+            step={2}
+            value={bpm}
+            onChange={(e) => setBpm(Number(e.target.value))}
+            className="w-24 accent-gold"
+            aria-label="Metronome tempo"
+          />
+          <span className="w-8 text-gold-light">{bpm}</span>
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            if (muted) {
+              void unlockAudio().then(() => setMuted(false));
+            }
+            setOrganPadOn((on) => !on);
+          }}
+          className={cn(
+            "min-h-10 rounded-full border px-4 text-xs",
+            organPadOn ? "border-violet-400/60 bg-violet-950/40 text-gold-light" : "border-gold/30 text-gold/70",
+          )}
+          aria-pressed={organPadOn}
+        >
+          {organPadOn ? "Organ pad on" : "Organ pad"}
+        </button>
+      </section>
 
       {/* Sheet music hero */}
       <section className="mt-4 rounded-xl border border-gold/30 bg-navy-light/50 p-3">

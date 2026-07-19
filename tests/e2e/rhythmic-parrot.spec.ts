@@ -70,7 +70,9 @@ test.describe("Rhythmic Parrot", () => {
 
   test("home links to playable parrot game", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /Rhythmic Parrot/ }).click();
+    await page
+      .getByRole("link", { name: /Rhythmic Parrot: Tap when the fruit hits the beak$/ })
+      .click();
     await expect(page.getByRole("button", { name: "Start Round" })).toBeVisible();
   });
 });

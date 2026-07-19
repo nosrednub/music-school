@@ -95,7 +95,7 @@ export const RouteVIGame = ({ defaultMuted = true }: RouteVIGameProps) => {
     track.stroke({ width: 6, color: 0x475569, alpha: 0.9 });
     stage.addChild(track);
 
-    CHAPEL_LINE.forEach((_station, index) => {
+    CHAPEL_LINE.forEach((station, index) => {
       const angle = getStationAngle(index, CHAPEL_LINE.length);
       const x = TRACK_CX + TRACK_RX * Math.cos(angle);
       const y = TRACK_CY + TRACK_RY * Math.sin(angle);

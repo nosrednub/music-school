@@ -2,12 +2,15 @@ import type { MidiTransport, MidiTransportKind } from "./types";
 import { isWebMidiSupported } from "./types";
 import { VirtualKeyboardTransport } from "./virtualKeyboardTransport";
 import { WebMidiTransport } from "./webMidiTransport";
+import { LinkTransport } from "./linkTransport";
 
 export type MidiRouterState = {
   active: MidiTransport;
   webMidi: WebMidiTransport | null;
+  link: LinkTransport | null;
   virtual: VirtualKeyboardTransport;
   webMidiAvailable: boolean;
+  linkAvailable: boolean;
 };
 
 let routerState: MidiRouterState | null = null;
@@ -19,12 +22,15 @@ export const getMidiRouter = (): MidiRouterState => {
 
   const virtual = new VirtualKeyboardTransport();
   const webMidi = isWebMidiSupported() ? new WebMidiTransport() : null;
+  const link = typeof WebSocket !== "undefined" ? new LinkTransport() : null;
 
   routerState = {
     active: virtual,
     webMidi,
+    link,
     virtual,
     webMidiAvailable: webMidi !== null,
+    linkAvailable: link !== null,
   };
 
   void virtual.connect();
@@ -59,9 +65,31 @@ export const connectWebMidi = async (): Promise<{
   }
 };
 
+export const connectLinkMidi = async (): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  const router = getMidiRouter();
+  if (!router.link) {
+    return { success: false, error: "MIDI Link transport unavailable." };
+  }
+
+  try {
+    await router.link.connect();
+    router.active = router.link;
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "MIDI Link connection failed",
+    };
+  }
+};
+
 export const useVirtualOnly = (): void => {
   const router = getMidiRouter();
   router.webMidi?.disconnect();
+  router.link?.disconnect();
   router.active = router.virtual;
 };
 
