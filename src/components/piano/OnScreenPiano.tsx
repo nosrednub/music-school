@@ -6,37 +6,7 @@ import { playNote, unlockAudio } from "@/lib/audio/audioService";
 import { midiToPitch } from "@/lib/theory/notes";
 import { cn } from "@/lib/utils";
 
-const WHITE_KEYS = [
-  { midi: 48, label: "C" },
-  { midi: 50, label: "D" },
-  { midi: 52, label: "E" },
-  { midi: 53, label: "F" },
-  { midi: 55, label: "G" },
-  { midi: 57, label: "A" },
-  { midi: 59, label: "B" },
-  { midi: 60, label: "C" },
-  { midi: 62, label: "D" },
-  { midi: 64, label: "E" },
-  { midi: 65, label: "F" },
-  { midi: 67, label: "G" },
-  { midi: 69, label: "A" },
-  { midi: 71, label: "B" },
-  { midi: 72, label: "C" },
-];
-
-const BLACK_KEYS = [
-  { midi: 49, afterWhite: 0 },
-  { midi: 51, afterWhite: 1 },
-  { midi: 54, afterWhite: 3 },
-  { midi: 56, afterWhite: 4 },
-  { midi: 58, afterWhite: 5 },
-  { midi: 61, afterWhite: 7 },
-  { midi: 63, afterWhite: 8 },
-  { midi: 64, afterWhite: 9 },
-  { midi: 66, afterWhite: 10 },
-  { midi: 68, afterWhite: 11 },
-  { midi: 70, afterWhite: 12 },
-];
+import { BLACK_KEYS, WHITE_KEYS } from "./pianoLayout";
 
 type OnScreenPianoProps = {
   highlightedMidi?: Set<number>;
