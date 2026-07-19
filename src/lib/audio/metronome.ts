@@ -1,4 +1,4 @@
-import { getSharedAudioContext } from "@/lib/audio/audioContext";
+import { resumeFromUserGesture } from "@/lib/audio/audioContext";
 
 const playClick = (ctx: AudioContext, accent: boolean) => {
   const osc = ctx.createOscillator();
@@ -22,8 +22,7 @@ export const startMetronome = (
   bpm: number,
   beatsPerMeasure = 4,
 ): MetronomeHandle => {
-  const ctx = getSharedAudioContext();
-  void ctx.resume();
+  const ctx = resumeFromUserGesture();
 
   let beat = 0;
   const intervalMs = 60_000 / bpm;

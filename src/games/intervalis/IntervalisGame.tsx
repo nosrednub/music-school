@@ -10,7 +10,6 @@ import { Application, Graphics } from "pixi.js";
 import {
   playHarmonicInterval,
   playUnlockConfirmation,
-  unlockAudio,
 } from "@/lib/audio/audioService";
 import {
   type BridgeEvaluation,
@@ -125,13 +124,12 @@ export const IntervalisGame = ({
     }
   }, []);
 
-  const playChallengeAudio = useCallback(async (ch: IntervalChallenge) => {
+  const playChallengeAudio = useCallback((ch: IntervalChallenge) => {
     if (mutedRef.current) {
       pillarPulseRef.current = 1;
       return;
     }
-    await unlockAudio();
-    await playHarmonicInterval(ch.root, ch.upper);
+    playHarmonicInterval(ch.root, ch.upper);
   }, []);
 
   const beginChallenge = useCallback(() => {
@@ -305,13 +303,13 @@ export const IntervalisGame = ({
     beginChallenge();
   };
 
-  const handleToggleMute = async () => {
+  const handleToggleMute = () => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
       setMuted(false);
       mutedRef.current = false;
       if (challengeRef.current) {
-        await playHarmonicInterval(
+        playHarmonicInterval(
           challengeRef.current.root,
           challengeRef.current.upper,
         );
@@ -340,7 +338,7 @@ export const IntervalisGame = ({
         </span>
         <button
           type="button"
-          onClick={() => void handleToggleMute()}
+          onClick={handleToggleMute}
           className="min-h-11 rounded-full border border-gold/30 px-4 text-sm text-gold-light"
           aria-pressed={!muted}
         >

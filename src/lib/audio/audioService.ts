@@ -4,8 +4,9 @@ import { CacheStorage, SplendidGrandPiano } from "smplr";
 
 import {
   getSharedAudioContext,
-  playGestureUnlockBlip,
-  resumeSharedAudioContext,
+  resumeFromUserGesture,
+  settleAudioContext,
+  unlockFromUserGesture,
 } from "@/lib/audio/audioContext";
 import {
   playFallbackClick,
@@ -43,6 +44,7 @@ const loadPiano = (): Promise<SplendidGrandPiano | null> => {
 
   state.loading = (async () => {
     try {
+      await settleAudioContext();
       const ctx = getSharedAudioContext();
       const piano = new SplendidGrandPiano(ctx, { storage: pianoStorage });
       state.piano = piano;
@@ -67,6 +69,8 @@ const playWithPianoOrFallback = (
   playPiano: (piano: SplendidGrandPiano) => void,
   fallback: () => void,
 ): void => {
+  resumeFromUserGesture();
+
   if (state.pianoReady && state.piano) {
     playPiano(state.piano);
     return;
@@ -76,37 +80,32 @@ const playWithPianoOrFallback = (
   void loadPiano();
 };
 
-export const unlockAudio = async (): Promise<void> => {
-  await resumeSharedAudioContext();
+/** Sync unlock — call directly from click/touch handlers (iOS-safe). */
+export const unlockAudioSync = (): void => {
+  unlockFromUserGesture();
   state.unlocked = true;
+  playFallbackNote(72, 0.25, 80);
   void loadPiano();
+};
+
+/** Async unlock for callers that already unlocked synchronously. */
+export const unlockAudio = async (): Promise<void> => {
+  unlockAudioSync();
+  await settleAudioContext();
 };
 
 export const isAudioUnlocked = (): boolean => state.unlocked;
 
-/** Audible confirmation on unmute — immediate blip, then piano or fallback tone. */
-export const playUnlockConfirmation = async (): Promise<void> => {
-  if (!state.unlocked) {
-    await unlockAudio();
-  } else {
-    playGestureUnlockBlip(getSharedAudioContext());
-  }
-
-  playWithPianoOrFallback(
-    (piano) => {
-      piano.start({ note: "C5", velocity: 72, duration: 0.35 });
-    },
-    () => {
-      playFallbackNote(72, 0.35, 72);
-    },
-  );
+/** Audible confirmation on unmute — fully synchronous for iOS. */
+export const playUnlockConfirmation = (): void => {
+  unlockAudioSync();
 };
 
-export const playHarmonicInterval = async (
+export const playHarmonicInterval = (
   root: Pitch,
   upper: Pitch,
   durationSec = 1.4,
-): Promise<void> => {
+): void => {
   if (!state.unlocked) {
     return;
   }
@@ -126,11 +125,11 @@ export const playHarmonicInterval = async (
   );
 };
 
-export const playNote = async (
+export const playNote = (
   pitch: Pitch,
   durationSec = 0.6,
   velocity = 70,
-): Promise<void> => {
+): void => {
   if (!state.unlocked) {
     return;
   }
@@ -146,17 +145,19 @@ export const playNote = async (
   );
 };
 
-/** Short click for Rhythmic Parrot unmute and tap feedback. */
-export const playTapClick = async (): Promise<void> => {
+/** Short click for Rhythmic Parrot beats and tap feedback. */
+export const playTapClick = (accent = false): void => {
   if (!state.unlocked) {
     return;
   }
 
   playWithPianoOrFallback(
     (piano) => {
-      piano.start({ note: "C6", velocity: 40, duration: 0.06 });
+      piano.start({ note: accent ? "C6" : "G5", velocity: accent ? 55 : 42, duration: 0.05 });
     },
-    playFallbackClick,
+    () => {
+      playFallbackClick(accent);
+    },
   );
 };
 
@@ -167,11 +168,11 @@ export const midiToPitch = (midi: number): Pitch => {
   return { note: noteNames[pitchClass], octave };
 };
 
-export const playChordMidis = async (
+export const playChordMidis = (
   midis: number[],
   durationSec = 0.9,
   velocity = 68,
-): Promise<void> => {
+): void => {
   if (!state.unlocked) {
     return;
   }

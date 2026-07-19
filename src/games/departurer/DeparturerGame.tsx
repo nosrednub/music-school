@@ -5,7 +5,6 @@ import { Application, Graphics, Text } from "pixi.js";
 import {
   playHarmonicInterval,
   playUnlockConfirmation,
-  unlockAudio,
 } from "@/lib/audio/audioService";
 import { inputBus } from "@/lib/midi";
 import { cn } from "@/lib/utils";
@@ -153,21 +152,20 @@ export const DeparturerGame = ({ defaultMuted = true }: DeparturerGameProps) => 
     }
   }, []);
 
-  const playChallengeAudio = useCallback(async (c: DeparturerChallenge) => {
+  const playChallengeAudio = useCallback((c: DeparturerChallenge) => {
     if (mutedRef.current) {
       return;
     }
-    await unlockAudio();
-    await playHarmonicInterval(c.root, c.target, 1.2);
+    playHarmonicInterval(c.root, c.target, 1.2);
   }, []);
 
-  const startRound = useCallback(async (c: DeparturerChallenge) => {
+  const startRound = useCallback((c: DeparturerChallenge) => {
     setChallenge(c);
     setLastEval(null);
     setCoachTip(null);
     setFuelPercent(semitonesToFuelPercent(Math.min(7, c.targetSemitones)));
     setPhase("playing");
-    await playChallengeAudio(c);
+    playChallengeAudio(c);
   }, [playChallengeAudio]);
 
   const handleStart = useCallback(() => {
@@ -243,9 +241,9 @@ export const DeparturerGame = ({ defaultMuted = true }: DeparturerGameProps) => 
     return unsub;
   }, [handleLaunch]);
 
-  const handleToggleMute = useCallback(async () => {
+  const handleToggleMute = useCallback(() => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);
@@ -302,7 +300,7 @@ export const DeparturerGame = ({ defaultMuted = true }: DeparturerGameProps) => 
         </p>
         <button
           type="button"
-          onClick={() => void handleToggleMute()}
+          onClick={handleToggleMute}
           className="min-h-11 rounded-full border border-gold/30 px-3 text-xs"
           aria-label={muted ? "Unmute" : "Mute"}
         >

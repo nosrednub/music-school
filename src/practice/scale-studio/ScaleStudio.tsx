@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MidiConnectPanel } from "@/components/midi/MidiConnectPanel";
 import { ScaleStaffView } from "@/components/notation/ScaleStaffView";
 import { OnScreenPiano } from "@/components/piano/OnScreenPiano";
-import { playUnlockConfirmation, unlockAudio } from "@/lib/audio/audioService";
+import { playUnlockConfirmation, unlockAudioSync } from "@/lib/audio/audioService";
 import { startMetronome, type MetronomeHandle } from "@/lib/audio/metronome";
 import { startOrganPad, stopOrganPad } from "@/lib/audio/organPad";
 import { inputBus } from "@/lib/midi";
@@ -132,9 +132,9 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
     return unsub;
   }, [handleNoteOn]);
 
-  const handleToggleMute = useCallback(async () => {
+  const handleToggleMute = useCallback(() => {
     if (muted) {
-      await playUnlockConfirmation();
+      playUnlockConfirmation();
     }
     setMuted((m) => !m);
   }, [muted]);
@@ -145,7 +145,7 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
       metronomeRef.current = null;
       return;
     }
-    void unlockAudio();
+    unlockAudioSync();
     metronomeRef.current = startMetronome(bpm);
     return () => {
       metronomeRef.current?.stop();
@@ -159,7 +159,8 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
       return;
     }
     const midi = pitchToMidi(rootToPitch(root));
-    void unlockAudio().then(() => startOrganPad(midi));
+    unlockAudioSync();
+    void startOrganPad(midi);
     return () => {
       stopOrganPad();
     };
@@ -241,7 +242,8 @@ export const ScaleStudio = ({ defaultMuted = true }: ScaleStudioProps) => {
           type="button"
           onClick={() => {
             if (muted) {
-              void unlockAudio().then(() => setMuted(false));
+              playUnlockConfirmation();
+              setMuted(false);
             }
             setOrganPadOn((on) => !on);
           }}

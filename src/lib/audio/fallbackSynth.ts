@@ -1,45 +1,45 @@
-import { getSharedAudioContext } from "@/lib/audio/audioContext";
+import { resumeFromUserGesture } from "@/lib/audio/audioContext";
 import type { Pitch } from "@/types/music";
 import { pitchToMidi } from "@/lib/theory/notes";
 
 const midiToFrequency = (midi: number): number =>
   440 * 2 ** ((midi - 69) / 12);
 
-/** Soft triangle fallback while sampled piano is still loading. */
+/** Soft triangle tone — works immediately without sample downloads. */
 export const playFallbackNote = (
   pitch: Pitch | number,
   durationSec = 0.6,
   velocity = 70,
 ): void => {
-  const ctx = getSharedAudioContext();
+  const ctx = resumeFromUserGesture();
   const midi = typeof pitch === "number" ? pitch : pitchToMidi(pitch);
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = "triangle";
   osc.frequency.value = midiToFrequency(midi);
-  const peak = Math.min(0.22, (velocity / 127) * 0.28);
-  gain.gain.value = 0.001;
+  const peak = Math.min(0.28, (velocity / 127) * 0.35);
   osc.connect(gain);
   gain.connect(ctx.destination);
   const now = ctx.currentTime;
-  gain.gain.setValueAtTime(0.001, now);
-  gain.gain.exponentialRampToValueAtTime(peak, now + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.linearRampToValueAtTime(peak, now + 0.012);
+  gain.gain.linearRampToValueAtTime(0.0001, now + durationSec);
   osc.start(now);
-  osc.stop(now + durationSec + 0.02);
+  osc.stop(now + durationSec + 0.03);
 };
 
-export const playFallbackClick = (): void => {
-  const ctx = getSharedAudioContext();
+export const playFallbackClick = (accent = false): void => {
+  const ctx = resumeFromUserGesture();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = "sine";
-  osc.frequency.value = 880;
-  gain.gain.value = 0.06;
+  osc.frequency.value = accent ? 880 : 660;
+  const peak = accent ? 0.14 : 0.1;
   osc.connect(gain);
   gain.connect(ctx.destination);
   const now = ctx.currentTime;
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+  gain.gain.setValueAtTime(peak, now);
+  gain.gain.linearRampToValueAtTime(0.0001, now + 0.05);
   osc.start(now);
-  osc.stop(now + 0.05);
+  osc.stop(now + 0.06);
 };

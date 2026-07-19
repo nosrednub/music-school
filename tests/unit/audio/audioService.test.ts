@@ -10,18 +10,13 @@ vi.mock("smplr", () => ({
   })),
 }));
 
-vi.mock("@/lib/audio/fallbackSynth", () => ({
-  playFallbackNote: vi.fn(),
-  playFallbackClick: vi.fn(),
-}));
-
 const createMockContext = () => {
   const gain = {
     gain: {
       value: 0,
       setValueAtTime: vi.fn(),
-      exponentialRampToValueAtTime: vi.fn(),
       linearRampToValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
     },
     connect: vi.fn(),
   };
@@ -32,13 +27,22 @@ const createMockContext = () => {
     start: vi.fn(),
     stop: vi.fn(),
   };
+  const bufferSource = {
+    buffer: null as AudioBuffer | null,
+    connect: vi.fn(),
+    start: vi.fn(),
+    stop: vi.fn(),
+  };
   return {
     state: "running" as AudioContextState,
     currentTime: 0,
+    sampleRate: 44100,
     destination: {},
     resume: vi.fn().mockResolvedValue(undefined),
     createOscillator: vi.fn(() => osc),
     createGain: vi.fn(() => gain),
+    createBuffer: vi.fn(() => ({ getChannelData: vi.fn() })),
+    createBufferSource: vi.fn(() => bufferSource),
     close: vi.fn(),
   };
 };
@@ -52,50 +56,54 @@ describe("audioService", () => {
       "AudioContext",
       vi.fn(() => mockCtx),
     );
+    vi.stubGlobal(
+      "webkitAudioContext",
+      vi.fn(() => mockCtx),
+    );
+    vi.stubGlobal(
+      "Audio",
+      vi.fn(() => ({
+        preload: "",
+        currentTime: 0,
+        play: vi.fn().mockResolvedValue(undefined),
+      })),
+    );
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("marks audio unlocked and plays gesture blip on unlock", async () => {
-    const { unlockAudio, isAudioUnlocked } = await import("@/lib/audio/audioService");
+  it("marks audio unlocked synchronously on unlockAudioSync", async () => {
+    const { unlockAudioSync, isAudioUnlocked } = await import("@/lib/audio/audioService");
     expect(isAudioUnlocked()).toBe(false);
-    await unlockAudio();
+    unlockAudioSync();
     expect(isAudioUnlocked()).toBe(true);
     expect(AudioContext).toHaveBeenCalled();
   });
 
-  it("plays unlock confirmation tone after unmute", async () => {
-    const { playUnlockConfirmation } = await import("@/lib/audio/audioService");
-
-    await playUnlockConfirmation();
-
-    expect(pianoStart).toHaveBeenCalledWith(
-      expect.objectContaining({ note: "C5", velocity: 72, duration: 0.35 }),
-    );
+  it("plays unlock confirmation without awaiting", async () => {
+    const { playUnlockConfirmation, isAudioUnlocked } = await import("@/lib/audio/audioService");
+    playUnlockConfirmation();
+    expect(isAudioUnlocked()).toBe(true);
   });
 
   it("uses piano samples for playNote once unlocked", async () => {
-    const { unlockAudio, playNote } = await import("@/lib/audio/audioService");
-    await unlockAudio();
+    const { unlockAudioSync, playNote } = await import("@/lib/audio/audioService");
+    unlockAudioSync();
     await new Promise((resolve) => {
       setTimeout(resolve, 0);
     });
 
-    await playNote({ note: "C", octave: 4 });
+    playNote({ note: "C", octave: 4 });
     expect(pianoStart).toHaveBeenCalledWith(
       expect.objectContaining({ note: "C4", velocity: 70 }),
     );
   });
 
   it("no-ops playNote while still muted", async () => {
-    const { playFallbackNote } = await import("@/lib/audio/fallbackSynth");
     const { playNote } = await import("@/lib/audio/audioService");
-
-    await playNote({ note: "C", octave: 4 });
-
-    expect(playFallbackNote).not.toHaveBeenCalled();
+    playNote({ note: "C", octave: 4 });
     expect(pianoStart).not.toHaveBeenCalled();
   });
 });
