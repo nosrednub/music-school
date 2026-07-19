@@ -83,6 +83,7 @@ export const ScaleStaffView = ({
 
       new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 40);
       voice.draw(context, stave);
+      container.dataset.staffReady = "true";
     };
 
     void render();

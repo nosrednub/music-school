@@ -3,7 +3,7 @@ import path from "path";
 
 const SCREENSHOT_DIR = path.join(
   process.cwd(),
-  "artifacts",
+  "public",
   "screenshots",
   "scale-studio",
 );
@@ -20,6 +20,9 @@ test.describe("Scale Studio", () => {
 
     await expect(page.getByText(/follow the staff/)).toBeVisible();
     await expect(page.getByText(/scales · sheet music/)).toBeVisible();
+    await expect(page.locator('[data-staff-ready="true"] svg')).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.screenshot({
       path: path.join(SCREENSHOT_DIR, "01-staff-view.png"),

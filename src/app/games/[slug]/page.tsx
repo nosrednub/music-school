@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameLoader } from "@/components/game/GameLoader";
-import { getGameBySlug } from "@/lib/games/catalog";
+import { GAME_CATALOG, getGameBySlug } from "@/lib/games/catalog";
+
+export const generateStaticParams = () => {
+  return GAME_CATALOG.map((game) => ({ slug: game.slug }));
+};
 
 type GamePageProps = {
   params: Promise<{ slug: string }>;
